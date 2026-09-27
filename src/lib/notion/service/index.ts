@@ -198,35 +198,31 @@ class NotionDataService implements DataService {
    * 使用限流和重试机制
    */
   private async getPostWithContent(page: NotionPage): Promise<Post | null> {
-    try {
-      const metadata = this.extractMetadata(page);
+    const metadata = this.extractMetadata(page);
 
-      if (!metadata.slug) {
-        console.error(`[NotionService] Post ${page.id} has empty slug. Title: "${metadata.title}"`);
-        return null;
-      }
-
-      // 使用限流器控制并发，使用重试助手处理错误
-      const html = await notionRateLimiter.execute(() =>
-        notionRetryHelper.execute(
-          () => this.renderer.renderPage(page.id),
-          `Rendering page ${page.id} to HTML`
-        )
-      );
-
-      const excerpt = metadata.description || generateExcerpt(html, 200);
-      const readingTime = calculateReadingTime(html);
-
-      return {
-        ...metadata,
-        content: html,
-        excerpt,
-        readingTime,
-      };
-    } catch (error) {
-      console.error(`[NotionService] Error processing post ${page.id}:`, error);
+    if (!metadata.slug) {
+      console.error(`[NotionService] Post ${page.id} has empty slug. Title: "${metadata.title}"`);
       return null;
     }
+
+    // 渲染失败不吞错：空内容/占位内容一旦写入 all-posts 缓存，
+    // 残缺文章会随构建静默发布，重试与构建失败是更诚实的行为
+    const html = await notionRateLimiter.execute(() =>
+      notionRetryHelper.execute(
+        () => this.renderer.renderPage(page.id),
+        `Rendering page ${page.id} to HTML`
+      )
+    );
+
+    const excerpt = metadata.description || generateExcerpt(html, 200);
+    const readingTime = calculateReadingTime(html);
+
+    return {
+      ...metadata,
+      content: html,
+      excerpt,
+      readingTime,
+    };
   }
 
   /**

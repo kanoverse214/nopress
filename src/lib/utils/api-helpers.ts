@@ -87,11 +87,12 @@ export class RetryHelper {
    * 网络错误、限流（429）和 5xx 服务器错误应该重试
    */
   private defaultShouldRetry(error: Error): boolean {
-    // 网络错误
+    // 网络错误（含 Notion SDK 的 "Request to Notion API has timed out"）
     if (error.message.includes('fetch failed') ||
         error.message.includes('ECONNRESET') ||
         error.message.includes('ETIMEDOUT') ||
-        error.message.includes('network')) {
+        error.message.includes('network') ||
+        /timed?\s*out/i.test(error.message)) {
       return true;
     }
 

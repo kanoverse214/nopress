@@ -39,30 +39,28 @@ export class NotionPageRenderer {
 
   /**
    * 渲染整个页面为 HTML
+   *
+   * 失败时向上抛出（由 service 层的重试助手处理），禁止以占位 HTML 收尾——
+   * 占位内容会被 service 层当作正文写入缓存，残缺页面随构建静默发布
    */
   async renderPage(pageId: string): Promise<string> {
+    // 预获取页面数据（自动缓存格式信息）
     try {
-      // 预获取页面数据（自动缓存格式信息）
-      try {
-        await notionAPI.getPageData(pageId);
-      } catch (error) {
-        console.warn(`[NotionRenderer] Failed to fetch format data:`, error);
-        // 格式获取失败，继续渲染（不带样式）
-      }
-
-      // 获取页面块
-      const blocks = await notionAPI.getPageBlocks(pageId);
-
-      if (!blocks || blocks.length === 0) {
-        return '<p><em>No content available.</em></p>';
-      }
-
-      // 渲染为 HTML
-      return await this.blockRenderer.renderBlocks(blocks);
+      await notionAPI.getPageData(pageId);
     } catch (error) {
-      console.error(`[NotionRenderer] Error rendering page ${pageId}:`, error);
-      return '<p><em>Error loading content.</em></p>';
+      console.warn(`[NotionRenderer] Failed to fetch format data:`, error);
+      // 格式获取失败，继续渲染（不带样式）
     }
+
+    // 获取页面块
+    const blocks = await notionAPI.getPageBlocks(pageId);
+
+    if (!blocks || blocks.length === 0) {
+      return '<p><em>No content available.</em></p>';
+    }
+
+    // 渲染为 HTML
+    return await this.blockRenderer.renderBlocks(blocks);
   }
 
   /**
