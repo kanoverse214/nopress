@@ -1,0 +1,136 @@
+---
+/**
+ * Paper 主题布局
+ *
+ * 依赖契约稳定 API（docs/THEMES.md）：
+ * @config/resolved-site、@core/config/meta、@core/lib/meta-helpers、
+ * @lib/notion/service、@lib/theme/options、@/scripts/*
+ */
+import { getResolvedSiteConfig } from '@config/resolved-site';
+import { getMetaConfig } from '@core/config/meta';
+import { generateMetaTags } from '@core/lib/meta-helpers';
+import dataService from '@lib/notion/service';
+import { themeOptions } from '@lib/theme/options';
+import { ClientRouter } from 'astro:transitions';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { isCurrentPath, normalizePath, safeColor, splitLeadingEmoji } from '../lib/site';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** 分享卡片图片（文章封面），缺省用站点 OG 图 */
+  image?: string;
+  /** 本页 Markdown 版本 URL（供 AI Agent 自动发现） */
+  markdownUrl?: string;
+  /** 文章页为 article，其余为 website */
+  ogType?: string;
+}
+
+const SITE_CONFIG = await getResolvedSiteConfig();
+const menuItems = await dataService.getMenuItems();
+
+// 主题选项（声明见 theme.config.mjs，宿主可经 NOPRESS_THEME_OPTIONS 覆盖）
+const { darkMode = true, accentColor } = themeOptions as {
+  darkMode?: boolean;
+  accentColor?: string;
+};
+const accent = safeColor(accentColor, '#9b2226');
+
+const { title = SITE_CONFIG.title, description, image, markdownUrl, ogType } = Astro.props;
+
+const metaConfig = getMetaConfig(SITE_CONFIG);
+const metaTags = generateMetaTags(metaConfig, title, Astro.url.pathname, description);
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = image || metaTags.ogImage;
+const enableRSS = SITE_CONFIG.enableRSS && metaConfig.enableRSS;
+const currentPath = normalizePath(Astro.url.pathname);
+
+const socialLinks = Object.entries(SITE_CONFIG.social ?? {}).filter(([, url]) => Boolean(url));
+const SOCIAL_LABELS: Record<string, string> = {
+  github: 'GitHub',
+  twitter: 'Twitter',
+  email: 'Email',
+  mastodon: 'Mastodon',
+  weibo: '微博',
+  zhihu: '知乎',
+  bilibili: 'Bilibili',
+};
+---
+
+<!doctype html>
+<html lang={metaConfig.language} style={`--accent-base: ${accent};`}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <ClientRouter />
+    <link rel="icon" href={SITE_CONFIG.icon} />
+    <link rel="canonical" href={canonical} />
+    {enableRSS && (
+      <link rel="alternate" type="application/rss+xml" title={metaConfig.title} href={metaConfig.rssUrl} />
+    )}
+    {markdownUrl && (
+      <link rel="alternate" type="text/markdown" title={title} href={markdownUrl} />
+    )}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <title>{metaTags.title}</title>
+    <meta name="description" content={metaTags.description} />
+
+    <meta property="og:type" content={ogType ?? metaTags.ogType} />
+    <meta property="og:url" content={metaTags.ogUrl} />
+    <meta property="og:title" content={metaTags.ogTitle} />
+    <meta property="og:description" content={metaTags.ogDescription} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <meta name="twitter:card" content={metaTags.twitterCard} />
+    {metaTags.twitterSite && <meta name="twitter:site" content={metaTags.twitterSite} />}
+    <meta name="twitter:title" content={metaTags.twitterTitle} />
+    <meta name="twitter:description" content={metaTags.twitterDescription} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="masthead-title" href="/">{SITE_CONFIG.title}</a>
+      <nav class="masthead-nav" aria-label="主导航">
+        {menuItems.map(item => (
+          <a
+            href={item.url}
+            target={item.isExternal ? '_blank' : undefined}
+            rel={item.isExternal ? 'noopener noreferrer' : undefined}
+            aria-current={!item.isExternal && isCurrentPath(item.url, currentPath) ? 'page' : undefined}
+          >{splitLeadingEmoji(item.title).label}{item.isExternal && <span class="external-mark" aria-hidden="true">↗</span>}</a>
+        ))}
+        {darkMode && <ThemeToggle />}
+      </nav>
+    </header>
+
+    <main class="page">
+      <slot />
+    </main>
+
+    <footer class="colophon">
+      {(socialLinks.length > 0 || enableRSS) && (
+        <p class="colophon-links">
+          {socialLinks.map(([platform, url]) => (
+            <a
+              href={url}
+              target={url.startsWith('mailto:') ? undefined : '_blank'}
+              rel="noopener noreferrer"
+            >{SOCIAL_LABELS[platform] ?? platform}</a>
+          ))}
+          {enableRSS && <a href={metaConfig.rssUrl}>RSS</a>}
+        </p>
+      )}
+      <p>&copy; {SITE_CONFIG.copyrightYearText} {SITE_CONFIG.title} · 以 <a href="https://github.com/xxxuuu/nopress" target="_blank" rel="noopener noreferrer">NoPress</a> 排印</p>
+    </footer>
+
+    <script>
+      import '@/scripts/syntax-highlight';
+      import '@/scripts/code-copy';
+      import '@/scripts/math-rendering';
+      import '@/scripts/mermaid-rendering';
+      import '@/scripts/image-gallery';
+    </script>
+  </body>
+</html>

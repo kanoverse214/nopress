@@ -1,0 +1,45 @@
+---
+/**
+ * 首页 / 分页页共享主体：刊头（仅第 1 页）+ 文章条目 + 分页
+ */
+import type { Post } from '@lib/types';
+import dataService from '@lib/notion/service';
+import { getResolvedSiteConfig } from '@config/resolved-site';
+import EntryList from './EntryList.astro';
+import Pagination from './Pagination.astro';
+
+interface Props {
+  posts: Post[];
+  currentPage: number;
+  totalPages: number;
+}
+
+const { posts, currentPage, totalPages } = Astro.props;
+const SITE_CONFIG = await getResolvedSiteConfig();
+const dbInfo = await dataService.getDatabaseInfo();
+
+const title = dbInfo.title || SITE_CONFIG.title;
+const description = dbInfo.description || SITE_CONFIG.description;
+const icon = dbInfo.icon;
+---
+
+<div class="column">
+  {currentPage === 1 ? (
+    <header class="intro">
+      {icon && (icon.startsWith('http') || icon.startsWith('/')
+        ? <img class="intro-icon" src={icon} alt="" width="56" height="56" />
+        : <span class="intro-emoji" aria-hidden="true">{icon}</span>)}
+      <h1 class="intro-title">{title}</h1>
+      {description && <p class="intro-desc">{description}</p>}
+      <p class="ornament" aria-hidden="true">❦</p>
+    </header>
+  ) : (
+    <header class="section-head">
+      <p class="section-kicker">文章</p>
+      <h1 class="section-title">第 {currentPage} 页</h1>
+    </header>
+  )}
+
+  <EntryList posts={posts} />
+  <Pagination currentPage={currentPage} totalPages={totalPages} />
+</div>

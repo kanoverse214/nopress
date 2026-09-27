@@ -32,6 +32,7 @@ src/
 │   │   ├── components/   # Header、Footer、PostList、Pagination、Comments（giscus）等
 │   │   ├── styles/       # global.css（CSS 变量 + 深色模式）、notion.css
 │   │   └── theme.config.mjs
+│   ├── paper/            # 纸本学术排版主题：6 路由、章节编号、页边目录、BibTeX 引用
 │   ├── minimal/          # 契约参考实现（NOPRESS_THEME=minimal）：3 个路由的极简主题
 │   │   ├── pages/        # 首页、/post/[slug]、/[slug]
 │   │   ├── layouts/      # BaseLayout

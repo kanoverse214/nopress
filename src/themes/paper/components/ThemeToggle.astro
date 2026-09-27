@@ -1,0 +1,25 @@
+---
+// 深浅色切换：切换 <html> 的 light/dark 并写入 localStorage.theme（契约 §6）
+---
+
+<button class="theme-toggle" type="button" data-theme-toggle aria-label="切换深浅色" title="切换深浅色">
+  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+    <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+    <path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"></path>
+  </svg>
+</button>
+
+<script>
+  // astro:page-load：软导航后页头重建，需重新绑定（依赖 <ClientRouter />）
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const root = document.documentElement;
+        const next = root.classList.contains('dark') ? 'light' : 'dark';
+        root.classList.remove('light', 'dark');
+        root.classList.add(next);
+        localStorage.setItem('theme', next);
+      });
+    });
+  });
+</script>

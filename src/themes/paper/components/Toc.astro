@@ -1,0 +1,86 @@
+---
+/**
+ * 文章目录：构建期由 lib/headings 生成，编号与正文章节号一致
+ * 页边目录与窄屏折叠目录共用本组件，滚动高亮两处同步
+ */
+import type { Heading } from '../lib/headings';
+
+interface Props {
+  headings: Heading[];
+  numbered: boolean;
+}
+
+const { headings, numbered } = Astro.props;
+---
+
+<ol class="toc-list">
+  {headings.map(heading => (
+    <li class={`toc-entry toc-depth-${heading.depth}`}>
+      <a href={`#${heading.id}`} data-toc-link={heading.id}>
+        {numbered && <span class="toc-num">{heading.number}</span>}
+        <span class="toc-text">{heading.text}</span>
+      </a>
+    </li>
+  ))}
+</ol>
+
+<script>
+  // 滚动高亮：阅读位置之上最近的标题即当前章节；软导航后重建，旧监听经 AbortController 撤销
+  let lifecycle: AbortController | null = null;
+
+  /** 页边目录可滚动时，让高亮项保持在可视区内（只滚动目录容器，不牵动页面） */
+  function keepVisible(link: HTMLElement) {
+    const box = link.closest<HTMLElement>('[data-toc-scroll]');
+    if (!box || box.scrollHeight <= box.clientHeight) return;
+    const linkRect = link.getBoundingClientRect();
+    const boxRect = box.getBoundingClientRect();
+    if (linkRect.top < boxRect.top || linkRect.bottom > boxRect.bottom) {
+      box.scrollTop += linkRect.top - boxRect.top - boxRect.height / 2;
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    lifecycle?.abort();
+    lifecycle = null;
+
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-toc-link]'));
+    if (links.length === 0) return;
+
+    lifecycle = new AbortController();
+    const ids = [...new Set(links.map(link => link.dataset.tocLink ?? ''))];
+    const targets = ids
+      .map(id => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    let activeId = '';
+
+    const update = () => {
+      const threshold = window.innerHeight * 0.3;
+      let current = targets[0]?.id ?? '';
+      for (const target of targets) {
+        if (target.getBoundingClientRect().top > threshold) break;
+        current = target.id;
+      }
+      if (current === activeId) return;
+      activeId = current;
+      for (const link of links) {
+        const active = link.dataset.tocLink === current;
+        link.classList.toggle('is-active', active);
+        if (active) keepVisible(link);
+      }
+    };
+
+    let ticking = false;
+    const schedule = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        update();
+      });
+    };
+
+    window.addEventListener('scroll', schedule, { passive: true, signal: lifecycle.signal });
+    window.addEventListener('resize', schedule, { passive: true, signal: lifecycle.signal });
+    update();
+  });
+</script>

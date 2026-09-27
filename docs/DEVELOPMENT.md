@@ -34,7 +34,7 @@ cp .env.example .env   # 填入 NOTION_TOKEN 与 NOTION_DATABASE_ID
 ```
 src/
 ├── pages/        # 内核数据端点（.md、llms.txt、RSS、robots）
-├── themes/       # 主题（default 全功能 / minimal 契约参考 / terminal CRT 风）
+├── themes/       # 主题（default 全功能 / paper 学术排版 / minimal 契约参考 / terminal CRT 风）
 ├── lib/          # 内核：Notion 数据层、渲染器、缓存、markdown、主题系统、配置
 ├── config/       # 站点配置默认值与解析
 ├── core/         # <head> 元标签工具
@@ -60,7 +60,7 @@ src/
 ## 调试技巧
 
 - **改了 Notion 数据看不到**：dev 缓存 5 分钟、build 缓存 1 小时；数据层代码（notion/cache/utils/types）改动会自动失效缓存，也可 `rm -rf .cache/` 手动清理
-- **主题切换**：`NOPRESS_THEME=minimal|terminal`；out-tree 主题用 `NOPRESS_THEME_PATH`（注意 Astro 7 对项目外 `.astro` 路径的限制，见 [主题契约 §9](./THEMES.md#9-分发与兼容)）
+- **主题切换**：`NOPRESS_THEME=minimal|terminal|paper`；out-tree 主题用 `NOPRESS_THEME_PATH`（注意 Astro 7 对项目外 `.astro` 路径的限制，见 [主题契约 §9](./THEMES.md#9-分发与兼容)）
 - **主题选项**：`NOPRESS_THEME_OPTIONS='{"key":value}'`，构建日志会打印被覆盖的选项
 - **路由冲突**：主题路由撞内核保留路径会在构建期报错，错误信息里带完整保留清单
 
@@ -69,4 +69,3 @@ src/
 - 提交信息遵循 Conventional Commits（`feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `ci:`），一句话说清改动，使用 `git commit -s -S` 签名
 - 改动落地时同步对应文档（对应关系表见 [AGENTS.md 工作准则](../AGENTS.md#工作准则)）——例如改环境变量需同时更新 `.env.example`、`docs/CONFIGURATION.md` 和 CI workflow
 - 代码注释与文档使用中文，TypeScript strict（避免 `any`）
-

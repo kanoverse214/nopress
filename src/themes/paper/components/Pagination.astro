@@ -1,0 +1,25 @@
+---
+/**
+ * 分页：较新 / 页码 / 更早
+ */
+import { pageHref } from '../lib/posts';
+
+interface Props {
+  currentPage: number;
+  totalPages: number;
+}
+
+const { currentPage, totalPages } = Astro.props;
+---
+
+{totalPages > 1 && (
+  <nav class="pager" aria-label="分页">
+    {currentPage > 1 ? (
+      <a class="pager-prev" href={pageHref(currentPage - 1)} rel="prev">← 较新的文章</a>
+    ) : <span class="pager-prev" aria-hidden="true"></span>}
+    <span class="pager-status">第 {currentPage} 页，共 {totalPages} 页</span>
+    {currentPage < totalPages ? (
+      <a class="pager-next" href={pageHref(currentPage + 1)} rel="next">更早的文章 →</a>
+    ) : <span class="pager-next" aria-hidden="true"></span>}
+  </nav>
+)}

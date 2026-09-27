@@ -1,0 +1,49 @@
+---
+/**
+ * giscus 评论：服务端渲染容器 + data-* 传参 + 客户端初始化（契约 §7）
+ */
+import { getResolvedSiteConfig } from '@config/resolved-site';
+
+interface Props {
+  slug: string;
+  title?: string;
+}
+
+const { slug, title } = Astro.props;
+const SITE_CONFIG = await getResolvedSiteConfig();
+const giscusData = JSON.stringify({ slug, title, config: SITE_CONFIG.comments.giscus });
+---
+
+{SITE_CONFIG.comments.enabled && (
+  <section class="comments" aria-labelledby="comments-heading">
+    <h2 class="comments-heading" id="comments-heading">评论</h2>
+    <div
+      class="comments-container"
+      id="comments"
+      data-giscus-config={giscusData}
+      data-provider={SITE_CONFIG.comments.provider}
+    >
+      <div class="comments-loading">评论加载中……</div>
+    </div>
+  </section>
+)}
+
+<script>
+  import { initGiscus } from '@/scripts/comments/giscus';
+
+  // astro:page-load：软导航后容器是全新节点，需重新挂载（依赖 <ClientRouter />）
+  document.addEventListener('astro:page-load', () => {
+    const container = document.querySelector<HTMLElement>('.comments-container');
+    if (!container) return;
+
+    const { provider, giscusConfig } = container.dataset;
+    if (provider !== 'giscus' || !giscusConfig) return;
+
+    try {
+      const { slug, title, config } = JSON.parse(giscusConfig);
+      initGiscus({ container, slug, title, config });
+    } catch (error) {
+      console.error('[Comments] Failed to parse config:', error);
+    }
+  });
+</script>

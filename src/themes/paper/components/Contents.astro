@@ -1,0 +1,33 @@
+---
+/**
+ * 目录式文章列表：按年分组，标题与日期之间以点线引导（归档页、标签页共用）
+ */
+import type { Post } from '@lib/types';
+import { groupByYear } from '../lib/posts';
+
+interface Props {
+  posts: Post[];
+}
+
+const { posts } = Astro.props;
+const groups = groupByYear(posts);
+---
+
+<div class="contents">
+  {groups.map(group => (
+    <section class="contents-group" aria-labelledby={`year-${group.year}`}>
+      <h2 class="contents-year" id={`year-${group.year}`}>{group.year}</h2>
+      <ol class="contents-list">
+        {group.posts.map(post => (
+          <li>
+            <a class="contents-row" href={`/post/${post.slug}`}>
+              <span class="contents-title">{post.title}</span>
+              <span class="contents-leader" aria-hidden="true"></span>
+              <time class="contents-date" datetime={post.publishedAt}>{post.publishedAt.slice(5, 10).replace('-', '·')}</time>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  ))}
+</div>
