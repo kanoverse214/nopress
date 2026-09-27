@@ -91,6 +91,7 @@ export interface RenderContext {
   listDepth: number; // 当前列表嵌套深度
   inList: boolean; // 是否在列表内
   listType?: 'bulleted' | 'numbered' | 'todo'; // 列表类型
+  widthScale?: number; // 列布局累计宽度比例（0-1），用于收敛图片请求宽度与 sizes 插槽
 }
 
 /**

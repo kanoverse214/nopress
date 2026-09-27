@@ -6,9 +6,22 @@
 import type { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import type { RenderContext, RenderOptions, BlockFormat } from './types';
 import { renderRichText, extractPlainText, escapeHtml, renderPlainText } from './rich-text';
-import { toProxyUrl, fileObjectUrl, resolveIcon, withDisplayParams } from '../file-url';
+import { toProxyUrl, fileObjectUrl, resolveIcon, withDisplayParams, buildDisplaySrcSet } from '../file-url';
 import type { FileOwner } from '../file-url';
 import { fetchOpenGraphData } from '../opengraph';
+
+/** 正文内容列宽（px），与默认主题容器一致，用于 sizes 插槽估算 */
+const CONTENT_WIDTH = 900;
+/** 列布局堆叠为整宽的断点（px），与主题样式中的媒体查询一致 */
+const COLUMN_STACK_BREAKPOINT = 768;
+/**
+ * srcset 候选宽度（px）；最大候选由请求宽度动态补入。
+ * 最低档 750：更小的候选只会被 DPR-1 桌面端的小插槽选中，
+ * 而代理缩图在 1:1 物理像素下观感明显偏软
+ */
+const SRCSET_WIDTHS = [750, 1080, 1400];
+/** 候选上限相对显示宽的倍数：block_width 是 CSS 像素，HiDPI 缩放（1.25/1.5）需要更多物理像素 */
+const SRCSET_DPR_HEADROOM = 2;
 
 export class NotionBlockRenderer {
   private options: Required<RenderOptions>;
@@ -428,12 +441,6 @@ export class NotionBlockRenderer {
     // 转换临时 URL 为永久 URL
     const url = toProxyUrl(fileObjectUrl(image), this.blockOwner(block));
 
-    // 可选：压缩图片（正文显示用压缩版，灯箱 href 保留原图，点击后再渐进加载）
-    let displayUrl = url;
-    if (this.options.imageMaxWidth > 0) {
-      displayUrl = withDisplayParams(url, this.options.imageMaxWidth);
-    }
-
     const caption = image.caption && image.caption.length > 0
       ? renderPlainText(image.caption)
       : '';
@@ -452,6 +459,38 @@ export class NotionBlockRenderer {
     const isFullWidth = format.block_full_width;
     const isPageWidth = format.block_page_width;
 
+    // 可选：压缩图片（正文显示用压缩版，灯箱 href 保留原图，点击后再渐进加载）
+    // 请求宽度取 imageMaxWidth 与 Notion 手动缩小尺寸（block_width）中的较小值。
+    // Notion 语义中 page-width/full-width 优先于手动宽度（样式链同样跳过
+    // max-width，显示回归容器/列宽），此时不按 block_width 收敛
+    const constrainedWidth = !isFullWidth && !isPageWidth && blockWidth
+      ? Math.min(blockWidth, this.options.imageMaxWidth)
+      : undefined;
+    const displayWidth = this.options.imageMaxWidth > 0
+      ? (constrainedWidth ?? this.options.imageMaxWidth)
+      : 0;
+    let displayUrl = url;
+    if (displayWidth > 0) {
+      displayUrl = withDisplayParams(url, displayWidth);
+    }
+
+    // 响应式候选：移动端按视口/DPR 下载更小的尺寸。
+    // 上限放宽到显示宽 × 2：block_width 是 CSS 像素，HiDPI 缩放屏需要更多
+    // 物理像素，钳在显示宽会发糊（srcset 为空时 sizes 无意义，一并省略）
+    let srcsetAttr = '';
+    let sizesAttr = '';
+    if (displayWidth > 0) {
+      const ceiling = Math.min(displayWidth * SRCSET_DPR_HEADROOM, this.options.imageMaxWidth);
+      const widths = new Set(SRCSET_WIDTHS.filter((w) => w <= ceiling));
+      widths.add(displayWidth); // 1x 精确档
+      widths.add(ceiling);
+      const srcset = buildDisplaySrcSet(url, [...widths].sort((a, b) => a - b));
+      if (srcset) {
+        srcsetAttr = ` srcset="${escapeHtml(srcset)}"`;
+        sizesAttr = ` sizes="${this.buildSizesAttr(isFullWidth, constrainedWidth, context.widthScale)}"`;
+      }
+    }
+
     // 构建样式和类名
     let styleAttr = '';
     let figureClass = `notion-image notion-image-${alignment}`;
@@ -468,7 +507,7 @@ export class NotionBlockRenderer {
     }
 
     // 计算图片宽高比用于容器占位（防止 CLS）
-    // 图片加载完成后会用 naturalWidth/naturalHeight 替换为真实比例
+    // 图片加载完成后由 image-gallery.ts 统一替换为真实比例
     let wrapperStyleAttr = '';
     let wrapperDataAttr = '';
 
@@ -490,10 +529,28 @@ export class NotionBlockRenderer {
 
     return `<figure class="${figureClass}" ${styleAttr}>
       <a href="${escapedFullUrl}" class="glightbox" data-gallery="article-images" data-description="${escapedCaption}" data-title="${escapeHtml(alt)}"${wrapperStyleAttr}${wrapperDataAttr}>
-        <img src="${escapedUrl}" alt="${escapeHtml(alt)}" ${loading} onload="const ratio=this.naturalWidth/this.naturalHeight;this.parentElement.style.aspectRatio=ratio.toFixed(6);this.parentElement.setAttribute('data-aspect-ratio',ratio.toFixed(6));this.parentElement.classList.add('loaded')" />
+        <img src="${escapedUrl}" alt="${escapeHtml(alt)}" ${loading}${srcsetAttr}${sizesAttr} />
       </a>
       ${caption ? `<figcaption>${escapedCaption}</figcaption>` : ''}
     </figure>`;
+  }
+
+  /**
+   * 计算 sizes 插槽：浏览器按 插槽 × DPR 选择 srcset 候选
+   * 断点与列堆叠行为须和主题 CSS 保持一致（正文容器上限、768px 以下列占满整行、
+   * 全宽图破格占满视口）
+   */
+  private buildSizesAttr(isFullWidth: boolean | undefined, constrainedWidth?: number, widthScale?: number): string {
+    if (isFullWidth) {
+      return '100vw';
+    }
+    if (constrainedWidth) {
+      return `(min-width: ${constrainedWidth}px) ${constrainedWidth}px, 100vw`;
+    }
+    if (widthScale && widthScale < 1) {
+      return `(min-width: ${COLUMN_STACK_BREAKPOINT}px) ${Math.round(widthScale * CONTENT_WIDTH)}px, 100vw`;
+    }
+    return `(min-width: ${CONTENT_WIDTH}px) ${CONTENT_WIDTH}px, 100vw`;
   }
 
 
@@ -916,12 +973,18 @@ export class NotionBlockRenderer {
   private async renderColumn(block: BlockObjectResponse, context: RenderContext): Promise<string> {
     if (!block.has_children) return '<div class="notion-column"></div>';
 
-    const children = await this.fetchChildBlocks(block.id);
-    const childrenHtml = await this.renderBlocks(children, context);
-
     // 获取列宽比例
     const format = this.getBlockFormat(block.id);
     const columnRatio = format.column_ratio;
+
+    // 列内图片按列宽比例收敛请求宽度与 sizes 插槽（嵌套列累乘）
+    const childContext: RenderContext =
+      columnRatio && columnRatio > 0 && columnRatio < 1
+        ? { ...context, widthScale: (context.widthScale ?? 1) * columnRatio }
+        : context;
+
+    const children = await this.fetchChildBlocks(block.id);
+    const childrenHtml = await this.renderBlocks(children, childContext);
 
     // 应用列宽样式（使用 CSS 变量，支持移动端响应式）
     let styleAttr = '';

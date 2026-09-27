@@ -15,6 +15,21 @@ declare global {
 /** 缩略图栏的请求尺寸：栏内格子最大 60px，240px 覆盖到 3x 屏，避免按文章原图（1400px）加载 */
 const THUMB_WIDTH = 240;
 
+/**
+ * 图片加载完成后设置 aspect-ratio 锚点与 loaded 状态
+ * （替代曾内联在每张 <img> 上的 onload：95 张图的页面仅此属性即 20KB+，
+ * 且随全文 RSS 原样复制）
+ */
+function applyImageAspect(img: HTMLImageElement) {
+  const link = img.parentElement;
+  if (!link || !link.classList.contains('glightbox')) return;
+  if (!img.naturalWidth || !img.naturalHeight) return;
+  const ratio = (img.naturalWidth / img.naturalHeight).toFixed(6);
+  link.style.aspectRatio = ratio;
+  link.dataset.aspectRatio = ratio;
+  link.classList.add('loaded');
+}
+
 // 客户端导航会重复进入 setupGallery，销毁上一轮的 lightbox（其内部绑定旧 DOM）
 let activeLightbox: { destroy?: () => void } | null = null;
 
@@ -46,9 +61,9 @@ function removeEarlyClickGuard() {
   earlyClickGuard = null;
 }
 
-/** PhotoSwipe 核心模块加载函数：pswpModule 与打开前预热共用 */
-async function loadPswpCore() {
-  return (await import('https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.esm.min.js')).default;
+/** PhotoSwipe 核心模块加载函数：pswpModule 与打开前预热共用（本地打包，带指纹 hash 缓存） */
+async function loadPswpCore(): Promise<any> {
+  return (await import('photoswipe')).default;
 }
 
 // 核心模块约 50KB，只在首次会话预热一次，避免每页重复下载
@@ -115,9 +130,11 @@ async function setupGallery() {
   prepareLinks();
 
   try {
-    // 动态导入 PhotoSwipeLightbox（轻量）；
-    // photoswipe 核心通过 pswpModule 传入加载函数，推迟到首次点击打开灯箱时才下载
-    const { default: PhotoSwipeLightbox } = await import('https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe-lightbox.esm.min.js');
+    // 仍动态导入：只有含图片的页面才下载 lightbox chunk；
+    // photoswipe 核心通过 pswpModule 传入加载函数，推迟到首次点击打开灯箱时才下载。
+    // PhotoSwipe 的回调深入内部状态（pswp/ui/slide.data），库类型对可空性
+    // 要求严格，沿用宽松用法，仅在导入边界收敛类型
+    const PhotoSwipeLightbox = (await import('photoswipe/lightbox')).default as any;
 
     // 初始化 PhotoSwipe Lightbox
     const lightbox = new PhotoSwipeLightbox({
@@ -316,7 +333,7 @@ async function setupGallery() {
       earlyClickIndex = null;
     }
 
-    // 预热核心模块，消除首次打开灯箱时的 CDN 下载等待
+    // 预热核心模块，消除首次打开灯箱时的模块下载等待
     scheduleCoreWarmup();
 
     console.log(`[ImageGallery] ✅ PhotoSwipe initialized with ${galleryLinks.length} images`);
@@ -351,14 +368,21 @@ function toThumbSrc(src: string): string {
 
 /**
  * 注入 PhotoSwipe 样式（幂等）
+ *
+ * 用 ?inline 把 CSS 字符串打进动态 chunk（与 math-rendering.ts 的 KaTeX 同策略）：
+ * 普通 CSS import 会被 Astro 抽成独立 chunk 静态注入全站页面。
+ * 客户端导航 swap 会移除 JS 注入的 <style>，而动态 import 有模块缓存，
+ * 故样式检查必须脱离模块缓存，每次初始化独立执行
  */
-function loadPhotoSwipeCss() {
-  if (document.querySelector('link[data-pswp-css]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.css';
-  link.dataset.pswpCss = '';
-  document.head.appendChild(link);
+async function loadPhotoSwipeCss() {
+  const PSWP_STYLE_FLAG = 'data-pswp-css';
+  if (document.head.querySelector(`style[${PSWP_STYLE_FLAG}]`)) return;
+
+  const { default: pswpCss } = await import('photoswipe/style.css?inline');
+  const style = document.createElement('style');
+  style.textContent = pswpCss;
+  style.setAttribute(PSWP_STYLE_FLAG, '');
+  document.head.appendChild(style);
 }
 
 // astro:page-load 在首次加载与每次客户端导航后都会触发（依赖布局中的 <ClientRouter />）；
@@ -371,12 +395,24 @@ if (typeof window !== 'undefined') {
     earlyClickIndex = null;
     installEarlyClickGuard();
 
+    // 兜底：解析期（脚本执行前）就完成加载的图片不会再触发 load 事件，
+    // 常见于浏览器缓存命中，需补设 aspect-ratio 锚点
+    document.querySelectorAll<HTMLImageElement>('.glightbox img').forEach((img) => {
+      if (img.complete) applyImageAspect(img);
+    });
+
     if ('requestIdleCallback' in window) {
       (window as any).requestIdleCallback(() => setupGallery(), { timeout: 3000 });
     } else {
       setTimeout(() => setupGallery(), 200);
     }
   });
+
+  // load 事件不冒泡，在 document 上以 capture 委托；模块只执行一次，
+  // 绑定覆盖首次加载与软导航后的所有图片，包括 gallery 惰性初始化期间完成加载的
+  document.addEventListener('load', (e) => {
+    if (e.target instanceof HTMLImageElement) applyImageAspect(e.target);
+  }, true);
 }
 
 // 供 window.pswp 全局增强生效的模块标记

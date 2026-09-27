@@ -160,6 +160,17 @@ export function resolveCover(src: unknown, owner: FileOwner): string {
 }
 
 /**
+ * 为响应式图片生成 srcset（每个候选宽度一个 descriptor）
+ * 仅对支持尺寸参数的图源（Notion 代理 / Unsplash）展开；SVG 与其他图源
+ * 展开后退化为同一 URL，返回 null 由调用方省略 srcset
+ */
+export function buildDisplaySrcSet(url: string, widths: number[]): string | null {
+  if (!url || widths.length < 2) return null;
+  const entries = widths.map((width) => `${withDisplayParams(url, width)} ${width}w`);
+  return entries.every((entry) => entry === entries[0]) ? null : entries.join(', ');
+}
+
+/**
  * 为展示场景追加优化参数（Notion 代理的 cache/width、Unsplash 的压缩参数）
  * 仅影响加载性能，不影响 URL 有效性
  */

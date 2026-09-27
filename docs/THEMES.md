@@ -180,7 +180,7 @@ const { accentColor = '#0066cc' } = themeOptions as { accentColor?: string };
 | 行内公式 | `<code class="notion-equation">{latex}</code>`（无 `$` 包裹） |
 | 块级公式 | `.notion-equation-block > .notion-equation`，文本为 `$$latex$$`；脚本用 KaTeX 替换内容并注入 KaTeX 样式，主题可覆盖布局（`.katex-display` 等） |
 | 表格 | `.notion-table-wrapper > table.notion-table` |
-| 图片 | `figure.notion-image.notion-image-{center\|left\|right}`（可选加 `notion-image-page-width`）> `<a class="glightbox" data-gallery="article-images" data-title data-description><img …></a>`；图片带 `onload` 内联脚本计算宽高比（`a` 元素接收 `data-aspect-ratio` / `.loaded`）；多图排布用 `.notion-column-list > .notion-column` |
+| 图片 | `figure.notion-image.notion-image-{center\|left\|right}`（可选加 `notion-image-page-width` / `notion-image-full-width`）> `<a class="glightbox" data-gallery="article-images" data-title data-description><img …></a>`；`<img>` 带 `srcset`/`sizes`（按视口与 DPR 请求更小的候选，插槽估算基于默认主题的 900px 正文容器），无内联脚本——`a` 元素的 `data-aspect-ratio` / `.loaded` 由 `image-gallery` 脚本在图片加载后补设；多图排布用 `.notion-column-list > .notion-column` |
 | 书签卡片 | `.notion-bookmark` > `.notion-bookmark-info`（title/description/url）+ `.notion-bookmark-cover` |
 | 链接提及 | `.notion-mention` > `.notion-mention-icon`（`img.notion-mention-favicon`）+ `.notion-mention-text`，整体为 `<a>` 时可点击 |
 | 嵌入 | `figure.notion-embed-wrapper > iframe.notion-embed`（+ `figcaption`）；Twitter 变体 `notion-embed--twitter`；无法内嵌时降级为 `.notion-embed--fallback` 链接 |

@@ -117,6 +117,7 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 | `fileObjectUrl(obj)` | 官方 API 文件对象（`{type: 'external'\|'file'}`）拆包出原始 URL |
 | `resolveIcon(src, owner)` / `resolveCover(src, owner)` | icon（emoji 或图片 URL）与封面的统一解析，兼容官方 API 对象和非官方 API 字符串两种形状 |
 | `withDisplayParams(url, width)` | 展示场景追加压缩参数（仅性能优化） |
+| `buildDisplaySrcSet(url, widths)` | 生成响应式 `srcset`（每个候选宽度一个 descriptor）；仅对支持尺寸参数的图源展开，SVG 与其他图源返回 null |
 
 代理按 `owner`（`{id, table}`，id 为带连字符 UUID）鉴权，各来源文件的归属规则：
 

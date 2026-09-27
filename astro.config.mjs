@@ -16,6 +16,9 @@ export default defineConfig({
 
   compressHTML: 'jsx',
 
+  // 站内链接 hover/focus 时预取 HTML：静态页配合 <ClientRouter /> 软导航近乎零延迟
+  prefetch: true,
+
   server: {
     host: true, // This makes the server listen on all IPs (0.0.0.0)
     // port: 3000, // Optional: specify a custom port
