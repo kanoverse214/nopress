@@ -1129,10 +1129,19 @@ code.notion-equation .katex {
   margin-bottom: var(--spacing-sm);
 }
 
-.notion-pdf-viewer embed {
+.notion-pdf-viewer embed,
+.notion-pdf-viewer object {
   display: block;
   width: 100%;
   min-height: 600px;
+}
+
+/* 签名 URL 失效时 <object> 降级显示的 fallback 链接 */
+.notion-pdf-viewer object a {
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .notion-pdf-caption {

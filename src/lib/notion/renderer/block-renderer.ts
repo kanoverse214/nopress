@@ -644,29 +644,39 @@ export class NotionBlockRenderer {
 
   /**
    * 渲染 PDF
+   *
+   * 上传型 PDF 只能用签名 URL（/image/ 代理不支持非图片文件），而签名 URL
+   * 有时效，构建后数小时即失效。用 <object> 内嵌并保留原生 fallback 链接：
+   * URL 失效时浏览器自动降级显示链接，而不是弹下载（<embed> 声明类型与
+   * 实际内容不符时，部分浏览器会把内容丢给下载管理器）。
    */
   private async renderPdf(block: BlockObjectResponse, context: RenderContext): Promise<string> {
     const pdf = (block as any).pdf;
     let url = fileObjectUrl(pdf);
-
-    // 优先使用 signed_url（永久 URL）
-    // 注意：/image/ 代理不支持 PDF，所以必须用 signed_url
     const signedUrl = this.getSignedUrl(block.id);
     if (signedUrl) {
       url = signedUrl;
     }
-    // 如果没有 signed_url，保持原始 URL（可能会过期）
 
     const caption = pdf.caption && pdf.caption.length > 0
       ? renderPlainText(pdf.caption)
       : '';
+    const fileName = caption || this.extractFileName(url) || 'PDF 文档';
 
-    // 使用 Google Docs Viewer 嵌入 PDF
-    const viewerUrl = `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+    // 外链型 PDF 无时效问题可直接内嵌；上传型仅在拿到签名 URL 时内嵌
+    const embeddable = signedUrl !== null || pdf.type === 'external';
+
+    if (!embeddable) {
+      return `<div class="notion-file">
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">📄 ${escapeHtml(fileName)}</a>
+      </div>`;
+    }
 
     return `<div class="notion-pdf">
       <div class="notion-pdf-viewer">
-        <embed src="${escapeHtml(viewerUrl)}" type="application/pdf" />
+        <object data="${escapeHtml(url)}" type="application/pdf">
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">📄 ${escapeHtml(fileName)}</a>
+        </object>
       </div>
       ${caption ? `<div class="notion-pdf-caption">${caption}</div>` : ''}
     </div>`;

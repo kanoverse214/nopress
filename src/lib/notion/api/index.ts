@@ -4,7 +4,7 @@
  */
 
 import { Client } from '@notionhq/client';
-import { NotionAPI as NotionAPILib } from 'notion-client';
+import { NotionAPI as NotionAPILib, type SignedUrlRequest } from 'notion-client';
 import { resolveIcon, resolveCover } from '../file-url';
 import {
   notionUnofficialRateLimiter,
@@ -539,16 +539,57 @@ export class NotionAPI {
 
   /**
    * 为页面内所有文件块（图片/PDF/附件/封面）获取签名 URL
-   * notion-client 的 addSignedUrls 是公开方法，传入完整块 ID 列表即可
+   *
+   * Notion 的 getSignedFileUrls 对大批次请求会间歇性返回 500（单批 ≥3 个
+   * 文件即不稳定，与内容无关），而 notion-client 的 addSignedUrls 是整页
+   * 一次性批量调用，必炸。这里复刻其文件筛选逻辑，改为小批次分片签名：
+   * 单片失败只丢失该片文件的签名，不拖垮整页。
    */
   private async signPageFileUrls(pageData: PageData): Promise<void> {
-    try {
-      await (this.unofficialClient as any).addSignedUrls({
-        recordMap: pageData,
-        contentBlockIds: Object.keys(pageData.block || {}),
-      });
-    } catch (error) {
-      console.warn(`[NotionAPI] Failed to sign file urls:`, error);
+    const fileInstances: SignedUrlRequest[] = [];
+    const blockMap = pageData.block ?? {};
+    for (const blockId of Object.keys(blockMap)) {
+      const block = blockMap[blockId]?.value;
+      if (!block) continue;
+      const isFile =
+        block.type === 'pdf' ||
+        block.type === 'audio' ||
+        block.type === 'video' ||
+        block.type === 'file' ||
+        (block.type === 'image' && !!block.file_ids?.length);
+      const source: string | undefined =
+        block.type === 'page' ? block.format?.page_cover : block.properties?.source?.[0]?.[0];
+      if (!isFile && block.type !== 'page') continue;
+      if (!source) continue;
+      // 与 notion-client addSignedUrls 的筛选条件保持一致
+      if (!(source.includes('secure.notion-static.com') || source.includes('prod-files-secure') || source.includes('attachment:'))) {
+        continue;
+      }
+      fileInstances.push({ permissionRecord: { table: 'block', id: blockId }, url: source });
+    }
+
+    if (fileInstances.length === 0) return;
+
+    pageData.signed_urls = {};
+    const CHUNK_SIZE = 2;
+    for (let i = 0; i < fileInstances.length; i += CHUNK_SIZE) {
+      const chunk = fileInstances.slice(i, i + CHUNK_SIZE);
+      try {
+        const res = await notionUnofficialRateLimiter.execute(() =>
+          notionUnofficialRetryHelper.execute(
+            () => this.unofficialClient.getSignedFileUrls(chunk),
+            `Signing file urls ${i}-${i + chunk.length - 1}`
+          )
+        );
+        chunk.forEach((inst, j) => {
+          const signedUrl = res.signedUrls?.[j];
+          if (signedUrl) {
+            pageData.signed_urls![inst.permissionRecord.id] = signedUrl;
+          }
+        });
+      } catch (error) {
+        console.warn(`[NotionAPI] Failed to sign file urls chunk ${i}:`, error);
+      }
     }
   }
 
