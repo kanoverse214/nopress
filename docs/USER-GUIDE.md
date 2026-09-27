@@ -74,11 +74,12 @@ Netlify 等其它平台同理：导入仓库 + 配这两个变量即可。
 
 ## 四、换主题
 
-NoPress 内置三套主题，**换主题只需要设置一个环境变量**（在托管平台的环境变量里添加 `NOPRESS_THEME`）：
+NoPress 内置四套主题，**换主题只需要设置一个环境变量**（在托管平台的环境变量里添加 `NOPRESS_THEME`）：
 
 | 值 | 风格 |
 |----|------|
 | `default` | Notion 风格全功能主题：标签、归档、分页、目录、评论（默认） |
+| `paper` | 纸本学术排版：衬线正文、章节编号、页边目录、BibTeX 引用 |
 | `minimal` | 极简白净风格 |
 | `terminal` | 绿字黑底终端风 |
 
@@ -95,6 +96,7 @@ NOPRESS_THEME_OPTIONS = {"footerText": "欢迎留言", "showReadingTime": false}
 各主题支持哪些选项：
 
 - **default**：`darkMode`（深色模式开关）、`showPostCover`（文章封面）、`showReadingTime`（阅读时长）
+- **paper**：`darkMode`、`accentColor`（点缀色）、`numberedHeadings`（章节编号）、`showCitation`（BibTeX 引用）、`author`（引用署名）、`showPostCover`（文章封面）
 - **minimal**：`darkMode`、`footerText`（页脚文字）、`showPostMeta`（文章元信息）
 - **terminal**：`promptSymbol`（终端提示符符号）、`showScanlines`（扫描线质感）
 
@@ -117,4 +119,3 @@ NOPRESS_THEME_OPTIONS = {"footerText": "欢迎留言", "showReadingTime": false}
 3. 点 **新操作 → 发送 webhook**，粘贴第 1 步的网址
 
 此时文章将在 `status` 被改为 `Published` 时自动触发 Vercel 部署
-

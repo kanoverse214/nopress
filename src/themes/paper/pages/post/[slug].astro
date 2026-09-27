@@ -1,0 +1,128 @@
+---
+/**
+ * 文章页：居中标题块 + 摘要 + 卷首插图 + 编号正文 + 页边目录
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Toc from '../../components/Toc.astro';
+import Citation from '../../components/Citation.astro';
+import Comments from '../../components/Comments.astro';
+import { getResolvedSiteConfig } from '@config/resolved-site';
+import { themeOptions } from '@lib/theme/options';
+import { formatDate } from '@lib/utils/date';
+import type { Post } from '@lib/types';
+import { getPublishedPosts, isRoutableTag, meaningfulUpdate, tagHref } from '../../lib/posts';
+import { processHeadings } from '../../lib/headings';
+import '../../styles/content.css';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  // 文章按日期降序：前一项更新，后一项更早
+  return posts.map((post, index) => ({
+    params: { slug: post.slug },
+    props: { post, newer: posts[index - 1] ?? null, older: posts[index + 1] ?? null },
+  }));
+}
+
+interface Props {
+  post: Post;
+  newer: Post | null;
+  older: Post | null;
+}
+
+const { post, newer, older } = Astro.props;
+const SITE_CONFIG = await getResolvedSiteConfig();
+const { numberedHeadings = true, showCitation = true, showPostCover = true } = themeOptions as {
+  numberedHeadings?: boolean;
+  showCitation?: boolean;
+  showPostCover?: boolean;
+};
+
+const { html, headings } = processHeadings(post.content, numberedHeadings);
+const showToc = headings.length > 1;
+const updated = meaningfulUpdate(post);
+const tags = post.tags.filter(isRoutableTag);
+
+// Markdown 版本信息（对 AI Agent 可见的发现提示）
+const markdownUrl = `/post/${post.slug}.md`;
+const markdownAbsUrl = new URL(markdownUrl, Astro.site).href;
+---
+
+<BaseLayout
+  title={post.title}
+  description={post.description}
+  image={post.coverUrl}
+  markdownUrl={markdownUrl}
+  ogType="article"
+>
+  <div class="article-layout">
+    <article class="article">
+      <header class="title-block">
+        {tags.length > 0 && (
+          <p class="title-tags">
+            {tags.map(tag => <a href={tagHref(tag)}>{tag}</a>)}
+          </p>
+        )}
+        <h1 class="title">{post.title}</h1>
+        <p class="byline">
+          <time datetime={post.publishedAt}>{formatDate(post.publishedAt, 'yyyy 年 M 月 d 日')}</time>
+          {post.readingTime && <span>约 {post.readingTime} 分钟</span>}
+          {updated && <span>修订于 <time datetime={updated}>{formatDate(updated, 'yyyy 年 M 月 d 日')}</time></span>}
+        </p>
+      </header>
+
+      {post.description && (
+        <section class="abstract" aria-labelledby="abstract-label">
+          <h2 class="abstract-label" id="abstract-label">摘要</h2>
+          <p>{post.description}</p>
+        </section>
+      )}
+
+      {showPostCover && post.coverUrl && (
+        <figure class="frontispiece">
+          <img src={post.coverUrl} alt="" loading="eager" fetchpriority="high" />
+        </figure>
+      )}
+
+      {showToc && (
+        <details class="inline-toc">
+          <summary>目录</summary>
+          <Toc headings={headings} numbered={numberedHeadings} />
+        </details>
+      )}
+
+      {/* Markdown 版本提示：Agent 读源码可发现，浏览器不渲染 */}
+      <Fragment set:html={`<!-- This page is also available as Markdown: ${markdownAbsUrl} -->`} />
+      <div class="notion-content" data-numbered={numberedHeadings ? '' : undefined} set:html={html} />
+      <p class="end-mark" aria-hidden="true">∎</p>
+
+      {(newer || older) && (
+        <nav class="post-nav" aria-label="相邻文章">
+          {older && (
+            <a class="post-nav-older" href={`/post/${older.slug}`} rel="prev">
+              <span class="post-nav-label">← 上一篇</span>
+              <span class="post-nav-title">{older.title}</span>
+            </a>
+          )}
+          {newer && (
+            <a class="post-nav-newer" href={`/post/${newer.slug}`} rel="next">
+              <span class="post-nav-label">下一篇 →</span>
+              <span class="post-nav-title">{newer.title}</span>
+            </a>
+          )}
+        </nav>
+      )}
+
+      {showCitation && <Citation post={post} />}
+      {SITE_CONFIG.comments.enabled && <Comments slug={post.slug} title={post.title} />}
+    </article>
+
+    {showToc && (
+      <aside class="margin-toc" aria-label="目录">
+        <div class="margin-toc-inner" data-toc-scroll>
+          <p class="margin-toc-label">目录</p>
+          <Toc headings={headings} numbered={numberedHeadings} />
+        </div>
+      </aside>
+    )}
+  </div>
+</BaseLayout>

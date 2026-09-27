@@ -1,0 +1,84 @@
+---
+/**
+ * 引用本文：生成 BibTeX 条目（@misc + \url，兼容 BibTeX 与 biblatex）
+ */
+import type { Post } from '@lib/types';
+import { getResolvedSiteConfig } from '@config/resolved-site';
+import { themeOptions } from '@lib/theme/options';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const SITE_CONFIG = await getResolvedSiteConfig();
+const { author = '' } = themeOptions as { author?: string };
+
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+// BibTeX 保留字符转义：单次替换，避免转义结果被二次处理
+const TEX_ESCAPES: Record<string, string> = {
+  '\\': '\\textbackslash{}',
+  '{': '\\{',
+  '}': '\\}',
+  '&': '\\&',
+  '%': '\\%',
+  $: '\\$',
+  '#': '\\#',
+  _: '\\_',
+  '~': '\\textasciitilde{}',
+  '^': '\\textasciicircum{}',
+};
+const escapeTex = (text: string) => text.replace(/[\\{}&%$#_~^]/g, char => TEX_ESCAPES[char]);
+
+const url = new URL(`/post/${post.slug}`, Astro.site).href;
+const year = post.publishedAt.slice(0, 4);
+const month = MONTHS[Number(post.publishedAt.slice(5, 7)) - 1];
+// 经典 BibTeX 的 key 只认 ASCII；中文 slug 退化为日期 key
+const key = /^[A-Za-z0-9_-]+$/.test(post.slug)
+  ? post.slug
+  : `post${post.publishedAt.slice(0, 10).replace(/-/g, '')}`;
+
+// 字段值即等号右侧原文：作者、标题双层花括号保留大小写（机构名不被拆成姓/名），月份用宏
+const fields: [string, string][] = [
+  ['author', `{{${escapeTex(author || SITE_CONFIG.title)}}}`],
+  ['title', `{{${escapeTex(post.title)}}}`],
+  ['year', year],
+  ...(month ? [['month', month] as [string, string]] : []),
+  ['howpublished', `{\\url{${url}}}`],
+];
+const width = Math.max(...fields.map(([name]) => name.length));
+const bibtex = [
+  `@misc{${key},`,
+  ...fields.map(([name, value]) => `  ${name.padEnd(width)} = ${value},`),
+  '}',
+].join('\n');
+---
+
+<details class="cite">
+  <summary>引用本文</summary>
+  <div class="cite-block">
+    <button class="cite-copy" type="button" data-cite-copy>复制</button>
+    <pre><code>{bibtex}</code></pre>
+  </div>
+</details>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLButtonElement>('[data-cite-copy]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const code = button.parentElement?.querySelector('code');
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code.textContent ?? '');
+          button.textContent = '已复制';
+        } catch {
+          button.textContent = '复制失败';
+        }
+        setTimeout(() => {
+          button.textContent = '复制';
+        }, 2000);
+      });
+    });
+  });
+</script>

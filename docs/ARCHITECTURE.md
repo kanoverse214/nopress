@@ -132,7 +132,7 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 ### 8. 主题系统（`src/lib/theme/` + `src/themes/`）
 
-页面、布局、组件、样式都在主题目录，框架与 UI 解耦。`default` 为全功能主题（6 个路由 + TOC/灯箱/评论）；`minimal` 是契约参考实现——仅依据 `docs/THEMES.md` 编写的三路由极简主题，同时用作主题契约的回归验证（`NOPRESS_THEME=minimal`）：
+页面、布局、组件、样式都在主题目录，框架与 UI 解耦。`default` 为全功能主题（6 个路由 + TOC/灯箱/评论）；`paper` 提供纸本学术排版（章节编号、页边目录、BibTeX 引用）；`minimal` 是契约参考实现——仅依据 `docs/THEMES.md` 编写的三路由极简主题，同时用作主题契约的回归验证（`NOPRESS_THEME=minimal`）：
 
 - `astro-integration.ts` — Astro 集成插件（在 `astro.config.mjs` 注册），扫描激活主题 `pages/` 下的页面（`.astro`）与端点（`.ts`）并 `injectRoute` 注入路由；对内核保留路由做构建期校验
 - `manager.ts` / `loader.ts` — 主题注册、激活与加载（`theme.config.mjs` 经原生 ESM 动态导入）；`NOPRESS_THEME` 环境变量选择主题（默认 `default`）
@@ -160,6 +160,7 @@ src/
 │   │   ├── components/           # Header、Footer、PostList、Pagination、Comments 等
 │   │   ├── styles/               # global.css、notion.css
 │   │   └── theme.config.mjs      # 主题清单
+│   ├── paper/                    # 纸本学术排版主题：6 路由、章节编号、页边目录、BibTeX 引用
 │   ├── minimal/                  # 契约参考实现（NOPRESS_THEME=minimal）：首页、/post/[slug]、/[slug] 三路由极简主题
 │   └── terminal/                 # 绿磷光 CRT 风格（NOPRESS_THEME=terminal）：三路由，单深色形态
 ├── lib/

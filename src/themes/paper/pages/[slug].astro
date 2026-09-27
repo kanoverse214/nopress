@@ -1,0 +1,45 @@
+---
+/**
+ * 独立页面（type=Page）：居中标题 + 正文，不编号、无目录
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Comments from '../components/Comments.astro';
+import dataService from '@lib/notion/service';
+import { getResolvedSiteConfig } from '@config/resolved-site';
+import { isValidSlug } from '@lib/utils/slug';
+import type { Post } from '@lib/types';
+import { processHeadings } from '../lib/headings';
+import '../styles/content.css';
+
+export async function getStaticPaths() {
+  const pages = await dataService.getAllPages();
+  return pages
+    .filter(page => isValidSlug(page.slug))
+    .map(page => ({ params: { slug: page.slug }, props: { page } }));
+}
+
+interface Props {
+  page: Post;
+}
+
+const { page } = Astro.props;
+const SITE_CONFIG = await getResolvedSiteConfig();
+const { html } = processHeadings(page.content);
+
+const markdownUrl = `/${page.slug}.md`;
+const markdownAbsUrl = new URL(markdownUrl, Astro.site).href;
+---
+
+<BaseLayout title={page.title} description={page.description} image={page.coverUrl} markdownUrl={markdownUrl}>
+  <article class="column">
+    <header class="title-block title-block--page">
+      <h1 class="title">{page.title}</h1>
+      {page.description && <p class="byline">{page.description}</p>}
+    </header>
+
+    <Fragment set:html={`<!-- This page is also available as Markdown: ${markdownAbsUrl} -->`} />
+    <div class="notion-content" set:html={html} />
+
+    {SITE_CONFIG.comments.enabled && <Comments slug={page.slug} title={page.title} />}
+  </article>
+</BaseLayout>

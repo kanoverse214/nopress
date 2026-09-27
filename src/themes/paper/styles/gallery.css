@@ -1,0 +1,83 @@
+/*
+ * PhotoSwipe 自定义 UI
+ * image-gallery 脚本注册了说明文字（.pswp__caption）与缩略图栏（.pswp__thumbnails），
+ * 核心样式由脚本注入，这两处自定义元素的外观由主题负责
+ */
+
+.pswp {
+  --pswp-bg: #15130f;
+}
+
+.pswp__caption {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 10050;
+  max-width: min(90vw, 40rem);
+  padding: 0.45rem 1rem;
+  transform: translateX(-50%);
+  background: rgba(21, 19, 15, 0.78);
+  color: #eee5d3;
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.pswp__caption--empty {
+  display: none;
+}
+
+.pswp__thumbnails {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10050;
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: rgba(21, 19, 15, 0.82);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(238, 229, 211, 0.3) transparent;
+}
+
+.pswp__thumbnail {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border: 1px solid transparent;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.pswp__thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pswp__thumbnail:hover {
+  opacity: 0.85;
+}
+
+.pswp__thumbnail--active {
+  border-color: #eee5d3;
+  opacity: 1;
+}
+
+@media (max-width: 480px) {
+  .pswp__caption {
+    bottom: 80px;
+    font-size: 0.82rem;
+  }
+
+  .pswp__thumbnail {
+    width: 44px;
+    height: 44px;
+  }
+}

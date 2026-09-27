@@ -1,0 +1,38 @@
+---
+/**
+ * 标签页：某一标签下的文章，目录式列表
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Contents from '../../components/Contents.astro';
+import type { Post } from '@lib/types';
+import { collectTags, getPublishedPosts } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const tags = collectTags(await getPublishedPosts());
+  return tags.map(tag => ({
+    params: { tag: tag.key },
+    props: { name: tag.name, posts: tag.posts },
+  }));
+}
+
+interface Props {
+  name: string;
+  posts: Post[];
+}
+
+const { name, posts } = Astro.props;
+---
+
+<BaseLayout title={`标签：${name}`} description={`标签「${name}」下的全部文章`}>
+  <div class="column">
+    <header class="section-head">
+      <p class="section-kicker">标签</p>
+      <h1 class="section-title">{name}</h1>
+      <p class="section-note">共 {posts.length} 篇</p>
+    </header>
+
+    <Contents posts={posts} />
+
+    <p class="back-link"><a href="/archive">← 全部文章</a></p>
+  </div>
+</BaseLayout>

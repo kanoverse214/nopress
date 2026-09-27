@@ -1,0 +1,38 @@
+---
+/**
+ * 首页文章条目：日期 · 标签 / 标题 / 摘要，形似期刊目次
+ */
+import type { Post } from '@lib/types';
+import { formatDate } from '@lib/utils/date';
+import { isRoutableTag, tagHref } from '../lib/posts';
+
+interface Props {
+  posts: Post[];
+}
+
+const { posts } = Astro.props;
+---
+
+{posts.length > 0 ? (
+  <ol class="entries">
+    {posts.map(post => (
+      <li class="entry">
+        <p class="entry-meta">
+          <time datetime={post.publishedAt}>{formatDate(post.publishedAt, 'yyyy 年 M 月 d 日')}</time>
+          {post.tags.filter(isRoutableTag).map(tag => (
+            <>
+              <span class="entry-sep" aria-hidden="true">·</span>
+              <a href={tagHref(tag)}>{tag}</a>
+            </>
+          ))}
+        </p>
+        <h2 class="entry-title">
+          <a href={`/post/${post.slug}`}>{post.title}</a>
+        </h2>
+        {post.description && <p class="entry-abstract">{post.description}</p>}
+      </li>
+    ))}
+  </ol>
+) : (
+  <p class="empty-note">尚无文章。</p>
+)}

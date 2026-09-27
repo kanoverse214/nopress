@@ -162,7 +162,7 @@ const { accentColor = '#0066cc' } = themeOptions as { accentColor?: string };
 - **保留选项 key**：`darkMode`（boolean）具有框架级行为（见 §6）；其余选项纯粹供主题自身消费
 - 修改 `NOPRESS_THEME_OPTIONS` 后需重启 dev server（值在构建启动时固化）
 
-完整可运行示例：`src/themes/minimal/`（`footerText` + `showPostMeta`）、`src/themes/default/`（`darkMode` + `showPostCover` + `showReadingTime`）、`src/themes/terminal/`（`promptSymbol` + `showScanlines`）。
+完整可运行示例：`src/themes/minimal/`（`footerText` + `showPostMeta`）、`src/themes/default/`（`darkMode` + `showPostCover` + `showReadingTime`）、`src/themes/terminal/`（`promptSymbol` + `showScanlines`）、`src/themes/paper/`（`darkMode` + `accentColor` + `numberedHeadings` + `showCitation` + `author` + `showPostCover`）。
 
 ## 4. 内容渲染契约（post.content / page.content）
 

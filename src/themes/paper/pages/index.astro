@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Home from '../components/Home.astro';
+import { getResolvedSiteConfig } from '@config/resolved-site';
+import { getPublishedPosts } from '../lib/posts';
+
+const SITE_CONFIG = await getResolvedSiteConfig();
+const allPosts = await getPublishedPosts();
+const perPage = Math.max(1, SITE_CONFIG.postsPerPage);
+const totalPages = Math.max(1, Math.ceil(allPosts.length / perPage));
+---
+
+<BaseLayout>
+  <Home posts={allPosts.slice(0, perPage)} currentPage={1} totalPages={totalPages} />
+</BaseLayout>
