@@ -1258,24 +1258,20 @@ code.notion-equation .katex {
   min-width: 0;
 }
 
+/* 封面位于信息列左侧（DOM 顺序 cover 在前），仅在有站点声明的预览图时渲染 */
 .notion-bookmark-cover {
-  width: 25%;
+  width: 30%;
   max-width: 280px;
-  aspect-ratio: 16 / 10;
   flex-shrink: 0;
-  background-color: transparent;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.notion-bookmark-cover img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
+/* 特异性需高于下方「通用样式」的 .notion-content img（height: auto），
+   否则封面图被压回原始宽高比、无法撑满卡片高度 */
+.notion-bookmark .notion-bookmark-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .notion-bookmark-info {
@@ -1286,6 +1282,14 @@ code.notion-equation .katex {
   min-width: 0;
   /* 关键：确保宽度受限 */
   width: 0;
+}
+
+.notion-bookmark .notion-bookmark-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  object-fit: cover;
+  margin-bottom: 6px;
 }
 
 .notion-bookmark-title {
@@ -1784,7 +1788,7 @@ a.notion-mention:hover,
   align-items: center;
 }
 
-.notion-mention-favicon {
+.notion-content .notion-mention-favicon {
   width: 16px;
   height: 16px;
   vertical-align: baseline;

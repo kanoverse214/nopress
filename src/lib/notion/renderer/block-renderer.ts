@@ -9,6 +9,7 @@ import { renderRichText, extractPlainText, escapeHtml, renderPlainText } from '.
 import { toProxyUrl, fileObjectUrl, resolveIcon, withDisplayParams, buildDisplaySrcSet } from '../file-url';
 import type { FileOwner } from '../file-url';
 import { fetchOpenGraphData } from '../opengraph';
+import type { OpenGraphData } from '../opengraph';
 
 /** 正文内容列宽（px），与默认主题容器一致，用于 sizes 插槽估算 */
 const CONTENT_WIDTH = 900;
@@ -823,27 +824,44 @@ export class NotionBlockRenderer {
   private async renderBookmark(block: BlockObjectResponse, context: RenderContext): Promise<string> {
     const bookmark = (block as any).bookmark;
     const url = bookmark.url;
-
-    // 获取 Open Graph 数据
-    const ogData = await fetchOpenGraphData(url);
-
-    // 标题优先级：og:title > caption > 域名
     const caption = bookmark.caption && bookmark.caption.length > 0
       ? extractPlainText(bookmark.caption)
       : '';
+
+    return this.renderBookmarkCard(url, await fetchOpenGraphData(url), caption);
+  }
+
+  /**
+   * 书签卡片（bookmark 与 link_preview 共用）。
+   * 布局对齐 Notion：左侧封面（仅站点显式声明的预览图）、右侧信息列；
+   * logo/favicon 一律作小图标，不再放大封面。
+   */
+  private renderBookmarkCard(url: string, ogData: OpenGraphData | null, caption = ''): string {
     const domain = this.extractDomain(url);
+
+    // 标题优先级：og:title > caption > 域名
     const title = ogData?.title || caption || domain;
+    // 描述优先级：og:description > caption（caption 已用作标题时不再重复展示）
+    const description = ogData?.description || (ogData?.title ? caption : '');
 
-    // 描述：og:description
-    const description = ogData?.description || '';
-
-    // 图片：og:image > logo > favicon
-    const image = ogData?.image || ogData?.logo;
+    // 小图标：logo > Google favicon 服务
+    let iconSrc = ogData?.logo;
+    if (!iconSrc) {
+      try {
+        iconSrc = `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`;
+      } catch {
+        // URL 非法时无图标
+      }
+    }
+    const icon = iconSrc
+      ? `<img class="notion-bookmark-icon" src="${escapeHtml(iconSrc)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+      : '';
 
     return `<figure class="notion-bookmark">
       <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">
-        ${image ? `<div class="notion-bookmark-cover"><img src="${image}" alt="" loading="lazy" /></div>` : ''}
+        ${ogData?.image ? `<div class="notion-bookmark-cover"><img src="${escapeHtml(ogData.image)}" alt="" loading="lazy" /></div>` : ''}
         <div class="notion-bookmark-info">
+          ${icon}
           <div class="notion-bookmark-title">${escapeHtml(title)}</div>
           ${description ? `<div class="notion-bookmark-description">${escapeHtml(description)}</div>` : ''}
           <div class="notion-bookmark-url">${escapeHtml(domain)}</div>
@@ -871,31 +889,7 @@ export class NotionBlockRenderer {
     const linkPreview = (block as any).link_preview;
     const url = linkPreview.url;
 
-    // 获取 Open Graph 数据
-    const ogData = await fetchOpenGraphData(url);
-
-    // 提取域名
-    const domain = this.extractDomain(url);
-
-    // 标题：优先使用 og:title，否则使用域名
-    const title = ogData?.title || domain;
-
-    // 描述：og:description
-    const description = ogData?.description || '';
-
-    // 图片：og:image > logo
-    const image = ogData?.image || ogData?.logo;
-
-    return `<figure class="notion-bookmark">
-      <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">
-        ${image ? `<div class="notion-bookmark-cover"><img src="${image}" alt="" loading="lazy" /></div>` : ''}
-        <div class="notion-bookmark-info">
-          <div class="notion-bookmark-title">${escapeHtml(title)}</div>
-          ${description ? `<div class="notion-bookmark-description">${escapeHtml(description)}</div>` : ''}
-          <div class="notion-bookmark-url">${escapeHtml(domain)}</div>
-        </div>
-      </a>
-    </figure>`;
+    return this.renderBookmarkCard(url, await fetchOpenGraphData(url));
   }
 
   // ========== 布局块渲染 ==========
