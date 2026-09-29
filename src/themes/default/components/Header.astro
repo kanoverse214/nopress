@@ -44,6 +44,17 @@ const enableSearch = SITE_CONFIG.enableSearch;
             </a>
           ))}
         </nav>
+        <!-- 菜单过长时的折叠入口：默认隐藏，余量不足时由脚本启用 -->
+        <div class="nav-more" hidden>
+          <button class="nav-more-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="nav-more-panel" aria-label="更多导航">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="5" cy="12" r="1.8"></circle>
+              <circle cx="12" cy="12" r="1.8"></circle>
+              <circle cx="19" cy="12" r="1.8"></circle>
+            </svg>
+          </button>
+          <div class="nav-more-panel" id="nav-more-panel" hidden></div>
+        </div>
         {darkMode && <ThemeToggle />}
         {enableSearch && (
           <button class="search-trigger" type="button" aria-label="搜索" title="搜索 (Ctrl/⌘ + K)">
@@ -57,6 +68,97 @@ const enableSearch = SITE_CONFIG.enableSearch;
     </div>
   </div>
 </header>
+
+<script>
+  /**
+   * 菜单折叠：导航区接近放满即把排不下的项按原始顺序折入二级面板。
+   * 预留余量避免「刚好塞满」时的局促排布，也吸收字体渲染的宽度差异。
+   *
+   * 测量方式：flex 子项不会收缩到 min-content 以下（链接 nowrap），
+   * header 两个子块的 offsetWidth 之和即导航区真实所需宽度（无论是否溢出），
+   * 容器宽度减去它即剩余空间。脚本只在模块首次加载执行，软导航后 DOM 重建，
+   * 故按 astro:page-load 重绑，AbortController 撤销上一轮监听。
+   */
+  let lifecycle: AbortController | null = null;
+
+  document.addEventListener('astro:page-load', setupNavCollapse);
+
+  function setupNavCollapse(): void {
+    lifecycle?.abort();
+    lifecycle = new AbortController();
+    const { signal } = lifecycle;
+
+    const container = document.querySelector<HTMLElement>('.header-content');
+    const nav = document.querySelector<HTMLElement>('.nav');
+    const more = document.querySelector<HTMLElement>('.nav-more');
+    const trigger = more?.querySelector<HTMLButtonElement>('.nav-more-trigger');
+    const panel = more?.querySelector<HTMLElement>('.nav-more-panel');
+    if (!container || !nav || !more || !trigger || !panel) return;
+
+    const links = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a'));
+    if (links.length === 0) return;
+
+    // 预留约半个导航项的空隙
+    const RESERVE_PX = 48;
+
+    const freeSpace = (): number => {
+      const used = ([...container.children] as HTMLElement[]).reduce((width, el) => width + el.offsetWidth, 0);
+      return container.clientWidth - used;
+    };
+
+    const closePanel = (): void => {
+      panel.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const rebalance = (): void => {
+      closePanel();
+      // 先全部收回 nav（links 为原始顺序，依次 append 即还原），再从尾部折入
+      for (const link of links) nav.append(link);
+      more.hidden = true;
+      while (freeSpace() < RESERVE_PX) {
+        const current = nav.querySelectorAll<HTMLAnchorElement>('a');
+        const last = current[current.length - 1];
+        if (!last) break; // 全部折入仍放不下（极端窄屏），放弃
+        panel.prepend(last);
+        more.hidden = false;
+      }
+    };
+
+    trigger.addEventListener('click', () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      trigger.setAttribute('aria-expanded', String(open));
+    }, { signal });
+
+    document.addEventListener('click', event => {
+      const target = event.target as Node;
+      if (more.contains(target)) {
+        // 面板内链接跳转（外链新标签打开时 DOM 不重建）后主动收起
+        if (panel.contains(target) && (target as HTMLElement).closest('a')) closePanel();
+        return;
+      }
+      closePanel();
+    }, { signal });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !panel.hidden) {
+        closePanel();
+        trigger.focus();
+      }
+    }, { signal });
+
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(rebalance, 100);
+    }, { signal });
+
+    rebalance();
+    // 字体加载完成会改变文本宽度，重新量一次
+    document.fonts?.ready.then(rebalance).catch(() => {});
+  }
+</script>
 
 <style>
   .notion-header {
@@ -180,6 +282,59 @@ const enableSearch = SITE_CONFIG.enableSearch;
     margin-left: 0.25rem;
     font-size: 0.75em;
     opacity: 0.6;
+  }
+
+  /* 折叠入口：几何对齐 search-trigger（图标 20px / padding 0.5rem / radius-md） */
+  .nav-more {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .nav-more-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: none;
+    color: rgba(55, 53, 47, 0.8);
+    cursor: pointer;
+    transition: background-color var(--transition), color var(--transition);
+  }
+
+  :global(.dark) .nav-more-trigger {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .nav-more-trigger:hover {
+    background-color: var(--notion-bg-hover);
+    color: var(--notion-text-primary);
+  }
+
+  .nav-more-trigger:focus-visible {
+    outline: 2px solid var(--notion-link);
+    outline-offset: 2px;
+  }
+
+  /* 二级面板：fixed header 之上，右缘与触发按钮对齐 */
+  .nav-more-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 10rem;
+    padding: var(--spacing-xs);
+    background-color: var(--notion-bg-primary);
+    /* --shadow-sm 首层为 1px ring，兼任描边，不另设 border */
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    z-index: 110;
+  }
+
+  /* 折入的链接脱离 flex 行布局，改为面板内的纵向列表 */
+  .nav-more-panel .nav-link {
+    display: block;
+    padding: 6px 10px;
   }
 
   /* 响应式 */
