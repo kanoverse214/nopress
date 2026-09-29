@@ -45,13 +45,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text);
+    color: rgba(55, 53, 47, 0.8);
     border-radius: var(--radius-md);
-    transition: background-color var(--transition);
+    transition: background-color var(--transition), color var(--transition);
   }
 
   #theme-toggle:hover {
-    background-color: var(--color-surface);
+    background-color: var(--notion-bg-hover);
+    color: var(--notion-text-primary);
+  }
+
+  :global(.dark) #theme-toggle {
+    color: rgba(255, 255, 255, 0.75);
   }
 
   .sun-icon {

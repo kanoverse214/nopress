@@ -44,19 +44,19 @@ my-theme/
 | `pages/about.astro` | `/about` |
 | `pages/post/[slug].astro` | `/post/[slug]` |
 | `pages/tag/[tag].astro` | `/tag/[tag]` |
-| `pages/search-index.json.ts` | `/search-index.json`（端点，见下节） |
+| `pages/stats.json.ts` | `/stats.json`（端点，见下节） |
 | 子目录递归同理 | `pages/foo/bar.astro` → `/foo/bar` |
 
 **主题端点**：`pages/` 下的 `.ts` 文件成为数据端点（与内核 `src/pages/` 的文件路由约定一致）——剥 `.ts` 后文件名即路由（副扩展名保留），导出 `GET` 返回 `Response`；动态端点（如 `[slug].json.ts`）自带 `getStaticPaths()`：
 
 ```ts
-// pages/search-index.json.ts —— 构建期执行，产出静态 JSON
+// pages/stats.json.ts —— 构建期执行，产出静态 JSON
 import dataService from '@lib/notion/service';
 
 export async function GET() {
   const posts = await dataService.getAllPosts();  // 复用 all-posts 缓存
   return new Response(
-    JSON.stringify(posts.map(p => ({ title: p.title, slug: p.slug }))),
+    JSON.stringify({ count: posts.length }),
     { headers: { 'Content-Type': 'application/json' } },
   );
 }
@@ -68,7 +68,7 @@ export async function GET() {
 
 **主题自有页面**：路由名不限于数据模型——`pages/` 下任意 `.astro` 文件都会成为路由，且不要求使用 Notion 数据。搜索页、友链页、作品集等主题专属页面直接新增文件即可（如 `pages/search.astro` → `/search`）；需要数据时在同一页面构建期调用 `dataService` 并把结果内联（静态站点无运行时数据）。
 
-**保留路径**：以下路由由内核提供，主题页面与端点都不可占用，撞名会在构建期直接失败：`/post/{slug}.md`、`/{slug}.md`、`/rss/feed.xml`、`/llms.txt`、`/robots.txt`、`/sitemap-index.xml`。
+**保留路径**：以下路由由内核提供，主题页面与端点都不可占用，撞名会在构建期直接失败：`/post/{slug}.md`、`/{slug}.md`、`/rss/feed.xml`、`/llms.txt`、`/robots.txt`、`/sitemap-index.xml`、`/search-docs.json`。
 
 ## 3. 数据访问
 
@@ -126,7 +126,7 @@ import { getResolvedSiteConfig } from '@config/resolved-site';
 const SITE_CONFIG = await getResolvedSiteConfig();
 ```
 
-返回 `ResolvedSiteConfig`：用户环境变量与 Notion Database 元数据合并后的配置。`title` / `description` / `icon` 必有值（自动回填 Database 标题/描述/图标），另有 `url`、`social`（Record）、`postsPerPage`、`enableRSS`、`enableSitemap`、`comments`（giscus 配置）、`seo`（`ogImage` / `twitterCard` / `twitterSite`）。
+返回 `ResolvedSiteConfig`：用户环境变量与 Notion Database 元数据合并后的配置。`title` / `description` / `icon` 必有值（自动回填 Database 标题/描述/图标），另有 `url`、`social`（Record）、`postsPerPage`、`enableRSS`、`enableSitemap`、`enableSearch`（见 §3.4）、`comments`（giscus 配置）、`seo`（`ogImage` / `twitterCard` / `twitterSite`）。
 
 `startYear`（`number | undefined`）来自 `SITE_START_YEAR`；页脚使用 `copyrightYearText`（`string`）展示年份，如 `2026` 或 `2023–2026`。
 
@@ -163,6 +163,42 @@ const { accentColor = '#0066cc' } = themeOptions as { accentColor?: string };
 - 修改 `NOPRESS_THEME_OPTIONS` 后需重启 dev server（值在构建启动时固化）
 
 完整可运行示例：`src/themes/minimal/`（`footerText` + `showPostMeta`）、`src/themes/default/`（`darkMode` + `showPostCover` + `showReadingTime`）、`src/themes/terminal/`（`promptSymbol` + `showScanlines`）、`src/themes/paper/`（`darkMode` + `accentColor` + `numberedHeadings` + `showCitation` + `author` + `showPostCover`）。
+
+### 3.4 搜索接口
+
+内核提供全文搜索的数据接口（文档集端点 + 无头客户端模块），**不提供任何界面**——搜索入口、弹层、交互与样式全部由主题实现。
+
+**文档集端点** `/search-docs.json`（内核保留路由）：全部已发布 Post 与 Page，全局按 `date` 降序。`SITE_ENABLE_SEARCH=false`（默认 `true`）时端点不生成，客户端 `ready` 为 false，主题应呈现不可用态。
+
+```jsonc
+[
+  {
+    "id": "hello-world",         // = slug，站内唯一
+    "url": "/post/hello-world",  // Page 为 /{slug}
+    "type": "post",              // "post" | "page"
+    "title": "…",
+    "tags": ["…"],               // page 为空数组
+    "excerpt": "…",              // description 或正文截断（160 字）
+    "body": "…",                 // 全文纯文本（HTML 与代码块已剔除）
+    "date": "2026-08-21"         // publishedAt
+  }
+]
+```
+
+**无头客户端** `@lib/search/client`（浏览器端，零 DOM 零事件；类型也从此模块导出）：
+
+```ts
+import { createSearchClient } from '@lib/search/client';
+
+const search = createSearchClient();        // 仅创建实例，无任何 IO
+await search.ready;                         // 首次 await 才拉取文档集并建索引；失败 resolve false（不抛错）
+const result = search.query('全文搜索');     // 索引就绪后同步返回
+```
+
+- `query()` 返回 `{ status: 'ok', items } | { status: 'loading' } | { status: 'unavailable' }`；`items` 为 `{ doc, score, terms, snippet }`——`snippet` 是正文首个命中前后的纯文本片段、`terms` 是命中词，高亮方式由主题决定
+- `createSearchClient()` 接受可选覆盖：`endpoint` / `boost`（默认 title 5、tags 3、body 1）/ `prefix` / `fuzzy` / `combineWith`（默认 AND）/ `limit`（默认 10）/ `recentOnEmpty`（空查询返回最近发布，默认开）
+- 中文与英文查询均可用；文档集与搜索引擎在首次 `await ready` 时才加载（懒加载），实例跨软导航复用，主题无需担心重复请求
+- 参考实现：`src/themes/default/scripts/search.ts`（按钮 + Ctrl/⌘+K + 非输入态 `/` 唤起、IME 组合期抑制查询、键盘导航）+ `components/SearchDialog.astro` + `styles/search.css`
 
 ## 4. 内容渲染契约（post.content / page.content）
 
@@ -270,6 +306,7 @@ const giscusData = JSON.stringify({ slug, title, config: SITE_CONFIG.comments.gi
 | `@lib/notion/service` | 数据服务单例 | **稳定**（本契约 §3） |
 | `@lib/types` | 数据契约类型 | **稳定**（本契约 §3） |
 | `@lib/utils/date`、`@lib/utils/slug`、`@lib/utils/format` | 通用工具 | **稳定** |
+| `@lib/search/client` | 无头搜索客户端（浏览器端，类型随此模块导出） | **稳定**（本契约 §3.4） |
 | `@config/resolved-site`、`@config/site` | 站点配置 | **稳定**（本契约 §3.2） |
 | `@lib/theme/options` | 主题选项合并结果（构建期常量） | **稳定**（本契约 §3.3） |
 | `@core/config/meta`、`@core/lib/meta-helpers` | `<head>` 元标签工具 | **稳定** |
@@ -308,6 +345,7 @@ const giscusData = JSON.stringify({ slug, title, config: SITE_CONFIG.comments.gi
 - §4 的内容 HTML 结构与 `notion-*` 类名（渲染器新增块类型为非破坏性变更）
 - §5 各脚本的 DOM 约定与引入路径
 - §3 数据服务的返回结构与 `@lib/types` 字段
+- §3.4 搜索接口的端点 schema 与无头客户端 API
 - §6 深色模式约定、§8 稳定别名
 - §3.3 主题选项机制的语义（声明、覆盖来源、类型转换、fail-fast 行为）
 

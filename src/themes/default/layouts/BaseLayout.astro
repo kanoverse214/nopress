@@ -5,7 +5,9 @@ import { generateMetaTags } from '@core/lib/meta-helpers';
 import { ClientRouter } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import SearchDialog from '../components/SearchDialog.astro';
 import '../styles/global.css';
+import '../styles/search.css';
 
 interface Props {
   title?: string;
@@ -85,6 +87,7 @@ const metaTags = generateMetaTags(
       <slot />
     </main>
     <Footer />
+    <SearchDialog />
 
     <!-- 语法高亮、数学公式、图表渲染和图片预览 -->
     <script>
@@ -93,6 +96,7 @@ const metaTags = generateMetaTags(
       import '@/scripts/math-rendering';
       import '@/scripts/mermaid-rendering';
       import '@/scripts/image-gallery';
+      import '../scripts/search';
     </script>
   </body>
 </html>

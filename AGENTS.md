@@ -26,11 +26,12 @@ npm run preview   # 预览构建产物
 src/
 ├── pages/                # 只有数据端点：post/[slug].md.ts、[slug].md.ts、llms.txt.ts、rss/、robots.txt.ts
 ├── themes/
-│   ├── default/          # 默认主题（全功能）：全部 6 个路由 + TOC/灯箱/评论
+│   ├── default/          # 默认主题（全功能）：全部 6 个路由 + TOC/灯箱/评论/全文搜索
 │   │   ├── pages/        # 被注入为 Astro 路由（首页、/post/[slug]、/[slug]、/tag/[tag]、/page/[page]、archive）
 │   │   ├── layouts/      # BaseLayout
-│   │   ├── components/   # Header、Footer、PostList、Pagination、Comments（giscus）等
-│   │   ├── styles/       # global.css（CSS 变量 + 深色模式）、notion.css
+│   │   ├── components/   # Header、Footer、PostList、Pagination、Comments（giscus）、SearchDialog 等
+│   │   ├── scripts/      # 主题自有客户端脚本（search：搜索交互，引擎来自 @lib/search/client）
+│   │   ├── styles/       # global.css（CSS 变量 + 深色模式）、notion.css、search.css
 │   │   └── theme.config.mjs
 │   ├── paper/            # 纸本学术排版主题：6 路由、章节编号、页边目录、BibTeX 引用
 │   ├── minimal/          # 契约参考实现（NOPRESS_THEME=minimal）：3 个路由的极简主题
@@ -52,6 +53,7 @@ src/
 │   │   └── file-url.ts
 │   ├── cache/            # notionCache 单例：dev=MemoryCache / build=FileCache；code-version.ts 让缓存随数据层代码自动失效
 │   ├── markdown/         # htmlToMarkdown()：HTML → Markdown（turndown + GFM + Notion 规则）
+│   ├── search/           # 全文搜索内核接口：documents、endpoint（/search-docs.json，经 integration.ts 按 SITE_ENABLE_SEARCH 注入）、client（无头客户端 minisearch）
 │   ├── theme/            # 主题系统：manager / loader / zod schema / astro-integration
 │   ├── config/loader.ts  # 环境变量配置加载（SITE_*、COMMENTS_*）
 │   └── utils/            # slug / date / format / api-helpers（RateLimiter + RetryHelper）/ version（构建 commit id）
@@ -68,7 +70,7 @@ src/
 
 2. **Notion Database 属性名必须全小写**（`title`、`status`、`date`…）。首字母大写会静默查不到数据。
 
-3. **页面与端点路由都写在主题目录**。`src/pages/` 只放内核数据端点（`.md`、`llms.txt`、RSS、robots），页面 `.astro` 和主题端点 `.ts` 都放在主题的 `pages/` 下，由 `src/lib/theme/astro-integration.ts` 扫描 `src/themes/*/pages/` 注入路由；`NOPRESS_THEME` 环境变量切换主题（默认 `default`）。主题路由撞内核保留路径（`/rss/feed.xml`、`/[slug].md` 等）会在构建期报错。
+3. **页面与端点路由都写在主题目录**。`src/pages/` 只放内核数据端点（`.md`、`llms.txt`、RSS、robots），页面 `.astro` 和主题端点 `.ts` 都放在主题的 `pages/` 下，由 `src/lib/theme/astro-integration.ts` 扫描 `src/themes/*/pages/` 注入路由；`NOPRESS_THEME` 环境变量切换主题（默认 `default`）。主题路由撞内核保留路径（`/rss/feed.xml`、`/[slug].md`、`/search-docs.json` 等）会在构建期报错。
 
 4. **astro-compress 的配置要求**（`astro.config.mjs`）：
    - HTML 选项必须挂在 `HTML['html-minifier-terser']` 键下，写在 `HTML` 顶层会被静默忽略
@@ -126,6 +128,7 @@ src/
 | 新增客户端功能 | `src/scripts/` 新建脚本 + `BaseLayout.astro` 引入 |
 | 自定义 Notion 块渲染 | `src/lib/notion/renderer/block-renderer.ts`（按块类型 switch） |
 | 改 Markdown 产物格式 | `src/lib/markdown/rules.ts`（Notion 规则）、`frontmatter.ts` |
+| 全文搜索 | 内核接口：`src/lib/search/`；默认主题 UI：`src/themes/default/scripts/search.ts` + `components/SearchDialog.astro` |
 | 站点配置 | 环境变量（`.env.example` 有完整清单）或 `src/config/site.ts` |
 
 ## 工作准则

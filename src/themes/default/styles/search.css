@@ -1,0 +1,245 @@
+/**
+ * 全站搜索弹层样式（default 主题）
+ *
+ * DOM 骨架见 components/SearchDialog.astro，交互见 scripts/search.ts；
+ * 配色全部走全局 CSS 变量，深色模式随 :root.dark 自动切换
+ */
+
+/* 弹层开启时锁定页面滚动 */
+body.search-lock {
+  overflow: hidden;
+}
+
+/* 打开动画（关闭为原生 dialog 瞬时收起，保持轻量） */
+dialog.search-dialog[open] {
+  animation: search-dialog-in 160ms ease-out;
+}
+
+dialog.search-dialog[open]::backdrop {
+  animation: search-backdrop-in 160ms ease-out;
+}
+
+@keyframes search-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes search-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+dialog.search-dialog {
+  width: min(640px, calc(100vw - 2 * var(--spacing-xl)));
+  max-width: 100%;
+  /* 顶部对齐 + 水平居中：全局 reset 的 * { margin: 0 } 会清掉 UA 的 margin: auto，需显式恢复水平 auto */
+  margin: 10vh auto 0;
+  padding: 0;
+  border: 1px solid var(--notion-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--notion-bg-primary);
+  color: var(--notion-text-primary);
+  box-shadow: var(--shadow-md);
+}
+
+dialog.search-dialog::backdrop {
+  background: rgba(15, 15, 15, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.search-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+/* 顶栏：图标 + 输入框 + 关闭按钮 */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 48px;
+  padding: 0 var(--spacing-sm) 0 var(--spacing-lg);
+  border-bottom: 1px solid var(--notion-border);
+}
+
+.search-icon {
+  flex-shrink: 0;
+  color: var(--notion-text-tertiary);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 1rem; /* ≥16px：iOS Safari 聚焦时不再触发视口放大 */
+}
+
+.search-input::placeholder {
+  color: var(--notion-text-tertiary);
+}
+
+.search-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--notion-text-tertiary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.search-close:hover {
+  background-color: var(--notion-bg-hover);
+  color: var(--notion-text-primary);
+}
+
+.search-close:focus-visible {
+  outline: 2px solid var(--notion-link);
+  outline-offset: 2px;
+}
+
+/* 结果区 */
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+}
+
+.search-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+}
+
+.search-result:hover,
+.search-result.active {
+  background-color: var(--notion-bg-hover);
+}
+
+.search-result-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--notion-text-primary);
+}
+
+.search-result-snippet {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--notion-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.search-result-meta {
+  font-size: 0.75rem;
+  color: var(--notion-text-tertiary);
+}
+
+/* 命中高亮：覆盖 UA 的黄色背景，双模式可读 */
+.search-result mark {
+  background-color: rgba(255, 212, 0, 0.4);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+html.dark .search-result mark {
+  background-color: rgba(255, 212, 0, 0.25);
+}
+
+/* 加载/空态/不可用 */
+.search-status {
+  padding: var(--spacing-xl) var(--spacing-md);
+  text-align: center;
+  color: var(--notion-text-tertiary);
+  font-size: 0.875rem;
+}
+
+/* 底部快捷键提示 */
+.search-hint {
+  display: flex;
+  gap: var(--spacing-lg);
+  justify-content: flex-end;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-top: 1px solid var(--notion-border);
+  color: var(--notion-text-tertiary);
+  font-size: 0.6875rem;
+}
+
+.search-hint kbd {
+  margin-right: 2px;
+  padding: 0 4px;
+  border: 1px solid var(--notion-border);
+  border-radius: 3px;
+  background-color: var(--notion-bg-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+/* 移动端：全屏面板（无物理键盘，快捷键提示隐藏，关闭经顶栏 ✕） */
+@media (max-width: 768px) {
+  @keyframes search-dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  dialog.search-dialog {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+
+  .search-panel {
+    max-height: none;
+  }
+
+  /* 刘海屏安全区：顶栏下移状态栏高度 */
+  .search-bar {
+    height: calc(48px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .search-results {
+    height: calc(100dvh - 48px - env(safe-area-inset-top));
+  }
+
+  .search-hint {
+    display: none;
+  }
+}

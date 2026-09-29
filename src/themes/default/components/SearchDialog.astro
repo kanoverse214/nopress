@@ -1,0 +1,41 @@
+---
+/**
+ * 全站搜索弹层（default 主题）
+ *
+ * 结构与命名完全是主题内部实现：数据与查询来自内核无头模块
+ * @lib/search/client，本组件只提供 DOM 骨架，行为见 ../scripts/search.ts
+ */
+---
+
+<dialog class="search-dialog" aria-label="站内搜索">
+  <div class="search-panel">
+    <div class="search-bar">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        class="search-input"
+        type="text"
+        enterkeyhint="search"
+        placeholder="搜索文章与页面…"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        aria-label="搜索关键词"
+      />
+      <button class="search-close" type="button" aria-label="关闭搜索">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="search-results" role="listbox" aria-label="搜索结果"></div>
+    <footer class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+      <span><kbd>Enter</kbd> 打开</span>
+      <span><kbd>Esc</kbd> 关闭</span>
+    </footer>
+  </div>
+</dialog>

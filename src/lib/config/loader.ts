@@ -154,6 +154,7 @@ function loadCommentsConfig() {
  * - SITE_POSTS_PER_PAGE -> postsPerPage
  * - SITE_ENABLE_RSS -> enableRSS
  * - SITE_ENABLE_SITEMAP -> enableSitemap
+ * - SITE_ENABLE_SEARCH -> enableSearch
  * - SITE_SOCIAL -> social (JSON 格式)
  */
 export function loadSiteConfig() {
@@ -172,6 +173,7 @@ export function loadSiteConfig() {
     postsPerPage: getEnvNumber('SITE_POSTS_PER_PAGE', 10) ?? 10,
     enableRSS: getEnvBoolean('SITE_ENABLE_RSS', true) ?? true,
     enableSitemap: getEnvBoolean('SITE_ENABLE_SITEMAP', true) ?? true,
+    enableSearch: getEnvBoolean('SITE_ENABLE_SEARCH', true) ?? true,
 
     // 评论系统配置
     comments: loadCommentsConfig(),

@@ -27,6 +27,9 @@ const RESERVED_PATTERNS = new Set([
   '/llms.txt',
   '/robots.txt',
   '/sitemap-index.xml',
+  '/search-docs.json',
+  // 搜索文档集端点：经 nopressSearchIntegration 注入（SITE_ENABLE_SEARCH 关闭时路由不存在，
+  // 路径仍保留，避免主题用同名端点承载其他内容造成歧义）
 ]);
 
 /**
@@ -183,7 +186,7 @@ export function nopressThemeIntegration(): AstroIntegration {
  *
  * 支持两类文件（与内核 src/pages/ 的文件路由约定一致）：
  * - `.astro` 页面：剥扩展名后文件名即路由段（index.astro → /）
- * - `.ts` 端点：剥 .ts 后保留副扩展名作为路由段（search-index.json.ts → /search-index.json），
+ * - `.ts` 端点：剥 .ts 后保留副扩展名作为路由段（stats.json.ts → /stats.json），
  *   文件需导出 GET 等方法；动态参数（[slug].json.ts）由文件自带 getStaticPaths
  */
 function scanThemeRoutes(pagesDir: string): PageRoute[] {
@@ -222,7 +225,7 @@ function scanThemeRoutes(pagesDir: string): PageRoute[] {
         pattern = pattern || '/';
       } else {
         // about.astro -> /prefix/about；[slug].astro -> /prefix/[slug]；
-        // search-index.json.ts -> /prefix/search-index.json
+        // stats.json.ts -> /prefix/stats.json
         pattern = `${pattern}/${routeSegment}`;
       }
 

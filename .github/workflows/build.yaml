@@ -43,6 +43,7 @@ jobs:
           SITE_POSTS_PER_PAGE: ${{ vars.SITE_POSTS_PER_PAGE }}
           SITE_ENABLE_RSS: ${{ vars.SITE_ENABLE_RSS }}
           SITE_ENABLE_SITEMAP: ${{ vars.SITE_ENABLE_SITEMAP }}
+          SITE_ENABLE_SEARCH: ${{ vars.SITE_ENABLE_SEARCH }}
           NOPRESS_THEME: ${{ vars.NOPRESS_THEME }}
           NOPRESS_THEME_PATH: ${{ vars.NOPRESS_THEME_PATH }}
           NOPRESS_THEME_OPTIONS: ${{ vars.NOPRESS_THEME_OPTIONS }}

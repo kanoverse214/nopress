@@ -145,7 +145,19 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 `htmlToMarkdown()` 将已渲染的 `post.content`（HTML）转为 Markdown，用于 `/post/{slug}.md`、`/{slug}.md` 端点和 `llms.txt` 索引（Markdown for Agents 产物）。基于 turndown + GFM 插件，附加 Notion 专属规则（`rules.ts`：公式、callout、代码块、去 UI 噪音）和 frontmatter 生成（`frontmatter.ts`）。转换直接复用缓存 HTML，不重新请求 Notion API。
 
-### 10. 配置系统（`src/lib/config/loader.ts` + `src/config/`）
+### 10. 全文搜索（`src/lib/search/`）
+
+搜索完全在浏览器端进行：构建期产出文档集端点，运行时主题界面经无头客户端查询。内核与界面的分层——内核只提供数据接口（端点 + 客户端模块），入口按钮、弹层、交互、样式全部在主题：
+
+- `integration.ts` — 按 `SITE_ENABLE_SEARCH`（默认开）决定是否把文档集端点 `injectRoute` 为 `/search-docs.json`；关闭时路由不存在，主题界面降级为不可用态
+- `endpoint.ts` — 端点实现（放 lib 而非 `src/pages/`：后者的文件会无条件成为路由，无法按配置摘除）；数据走 `dataService` 复用 `all-posts` 等缓存，零额外 Notion 请求
+- `documents.ts` — `Post[]`/`Page[]` → `SearchDocument[]`：`isValidSlug` 过滤（与路由同口径）、`extractPlainText` 纯文本化（代码块剔除、HTML 实体解码）、全局按发布日期降序
+- `client.ts` — 无头客户端 `createSearchClient()`：首次 `await ready` 才 fetch 端点并动态 import minisearch 建库（懒加载）；`query()` 同步返回 ok/loading/unavailable 三态，附正文摘要片段与命中词；分词用 `Intl.Segmenter`（中文词级切分 + NFKC 归一化），不支持时降级 CJK 二元组
+- 默认主题参考实现：`src/themes/default/scripts/search.ts` + `components/SearchDialog.astro` + `styles/search.css`
+
+规模注记：数百篇文章量级下文档集 gzip 后约几百 KB～2MB、minisearch 建库一两百毫秒，懒加载使其只在首次搜索时付出成本；数千篇以上需演进为分片文档或 Worker 建库，演进封闭在 `client.ts` 内、主题 API 不变。
+
+### 11. 配置系统（`src/lib/config/loader.ts` + `src/config/`）
 
 优先级：环境变量 > `.env` > 代码默认值（经 vite `loadEnv` 读取）。命名规范：`SITE_*`、`COMMENTS_GISCUS_*`。`SITE_TITLE` / `SITE_DESCRIPTION` / `SITE_ICON` 留空时自动回填 Notion Database 元数据（`resolved-site.ts`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点链接。完整变量表见 [CONFIGURATION.md](./CONFIGURATION.md)。
 
@@ -155,10 +167,11 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 src/
 ├── pages/                        # 只有数据端点：post/[slug].md.ts、[slug].md.ts、llms.txt.ts、rss/、robots.txt.ts
 ├── themes/                       # 主题契约见 docs/THEMES.md
-│   ├── default/                  # 默认主题（全功能）：首页、/post/[slug]、/[slug]、/tag/[tag]、/page/[page]、archive
+│   ├── default/                  # 默认主题（全功能）：首页、/post/[slug]、/[slug]、/tag/[tag]、/page/[page]、archive、全文搜索
 │   │   ├── layouts/              # BaseLayout
-│   │   ├── components/           # Header、Footer、PostList、Pagination、Comments 等
-│   │   ├── styles/               # global.css、notion.css
+│   │   ├── components/           # Header、Footer、PostList、Pagination、Comments、SearchDialog 等
+│   │   ├── scripts/              # 主题自有客户端脚本（search）
+│   │   ├── styles/               # global.css、notion.css、search.css
 │   │   └── theme.config.mjs      # 主题清单
 │   ├── paper/                    # 纸本学术排版主题：6 路由、章节编号、页边目录、BibTeX 引用
 │   ├── minimal/                  # 契约参考实现（NOPRESS_THEME=minimal）：首页、/post/[slug]、/[slug] 三路由极简主题
@@ -173,6 +186,7 @@ src/
 │   │   └── file-url.ts           # 文件 URL 统一解析（代理转换、icon/封面）
 │   ├── cache/                    # notionCache：MemoryCache / FileCache + 数据层代码版本（自动失效）
 │   ├── markdown/                 # htmlToMarkdown（turndown + Notion 规则）
+│   ├── search/                   # 全文搜索：documents、endpoint（/search-docs.json）、client（无头客户端）、integration
 │   ├── theme/                    # 主题系统：manager、loader、schema、astro-integration
 │   ├── config/loader.ts          # 环境变量配置加载
 │   └── utils/                    # api-helpers（限流/重试）、slug、date、format、version（构建 commit id）

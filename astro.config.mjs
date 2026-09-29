@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import compress from 'astro-compress';
 import { nopressThemeIntegration } from './src/lib/theme/astro-integration.ts';
+import { nopressSearchIntegration } from './src/lib/search/integration.ts';
 import { loadEnv } from 'vite';
 
 // Astro 配置文件加载较早，使用 loadEnv 读取环境变量
@@ -26,6 +27,7 @@ export default defineConfig({
 
   integrations: [
     nopressThemeIntegration(),
+    nopressSearchIntegration(),
     sitemap(),
     // HTML/CSS/JS 压缩
     compress({

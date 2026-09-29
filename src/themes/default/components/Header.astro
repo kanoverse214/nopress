@@ -16,6 +16,9 @@ const siteTitle = dbInfo.title || SITE_CONFIG.title;
 
 // 深色模式关闭时不渲染切换按钮
 const { darkMode = true } = themeOptions as { darkMode?: boolean };
+
+// 内核搜索开关（SITE_ENABLE_SEARCH），关闭时不渲染搜索入口
+const enableSearch = SITE_CONFIG.enableSearch;
 ---
 
 <header class="notion-header">
@@ -42,6 +45,14 @@ const { darkMode = true } = themeOptions as { darkMode?: boolean };
           ))}
         </nav>
         {darkMode && <ThemeToggle />}
+        {enableSearch && (
+          <button class="search-trigger" type="button" aria-label="搜索" title="搜索 (Ctrl/⌘ + K)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   </div>
@@ -106,6 +117,34 @@ const { darkMode = true } = themeOptions as { darkMode?: boolean };
     display: flex;
     align-items: center;
     gap: var(--spacing-lg);
+  }
+
+  /* 搜索入口：几何与节奏对齐 ThemeToggle（图标 20px / padding 0.5rem / radius-md） */
+  .search-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: none;
+    color: rgba(55, 53, 47, 0.8);
+    cursor: pointer;
+    transition: background-color var(--transition), color var(--transition);
+  }
+
+  :global(.dark) .search-trigger {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .search-trigger:hover {
+    background-color: var(--notion-bg-hover);
+    color: var(--notion-text-primary);
+  }
+
+  .search-trigger:focus-visible {
+    outline: 2px solid var(--notion-link);
+    outline-offset: 2px;
   }
 
   /* Navigation */
