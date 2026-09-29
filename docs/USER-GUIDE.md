@@ -74,33 +74,45 @@ Netlify 等其它平台同理：导入仓库 + 配这两个变量即可。
 
 ## 四、换主题
 
-NoPress 内置四套主题，**换主题只需要设置一个环境变量**（在托管平台的环境变量里添加 `NOPRESS_THEME`）：
+在托管平台设置 `NOPRESS_THEME` 后重新部署（默认 `default`）。
 
-| 值 | 风格 |
-|----|------|
-| `default` | Notion 风格全功能主题：标签、归档、分页、目录、评论（默认） |
-| `paper` | 纸本学术排版：衬线正文、章节编号、页边目录、BibTeX 引用 |
-| `minimal` | 极简白净风格 |
-| `terminal` | 绿字黑底终端风 |
+| Default · 默认 | Paper · 纸本 |
+| --- | --- |
+| [![Default 主题首页：Notion 风格布局、全宽封面与文章列表](./assets/themes/default.webp)](./assets/themes/default.webp) | [![Paper 主题首页：纸色背景、衬线字体与刊物式排版](./assets/themes/paper.webp)](./assets/themes/paper.webp) |
+| Notion 风格、全宽封面、侧边目录。 | 衬线正文、章节编号、页边目录、BibTeX 引用。 |
+| `NOPRESS_THEME=default` | `NOPRESS_THEME=paper` |
+| **Minimal · 极简** | **Terminal · 终端** |
+| [![Minimal 主题首页：纯文字文章列表与简洁导航](./assets/themes/minimal.webp)](./assets/themes/minimal.webp) | [![Terminal 主题首页：黑底绿字与终端命令式文章索引](./assets/themes/terminal.webp)](./assets/themes/terminal.webp) |
+| 纯文字列表、系统字体。 | 黑底绿字、等宽字体、CRT 扫描线。 |
+| `NOPRESS_THEME=minimal` | `NOPRESS_THEME=terminal` |
 
-设置后重新部署生效。
+<details>
+<summary>文章页预览</summary>
+
+| Default · 默认 | Paper · 纸本 |
+| --- | --- |
+| [![Default 主题文章页：文章封面、元信息与正文排版](./assets/themes/default-post.webp)](./assets/themes/default-post.webp) | [![Paper 主题文章页：衬线标题、卷首插图与编号页边目录](./assets/themes/paper-post.webp)](./assets/themes/paper-post.webp) |
+| **Minimal · 极简** | **Terminal · 终端** |
+| [![Minimal 主题文章页：简洁标题与正文排版](./assets/themes/minimal-post.webp)](./assets/themes/minimal-post.webp) | [![Terminal 主题文章页：等宽字体与绿磷光配色](./assets/themes/terminal-post.webp)](./assets/themes/terminal-post.webp) |
+
+</details>
 
 ### 主题选项
 
-部分主题支持进一步定制，通过环境变量 `NOPRESS_THEME_OPTIONS` 传递，格式是一段 JSON：
+通过 `NOPRESS_THEME_OPTIONS` 设置当前主题的选项，值为 JSON：
 
 ```text
-NOPRESS_THEME_OPTIONS = {"footerText": "欢迎留言", "showReadingTime": false}
+NOPRESS_THEME_OPTIONS = {"showPostCover": false, "showReadingTime": false}
 ```
 
-各主题支持哪些选项：
+上例用于 `default`；各主题支持的选项如下：
 
 - **default**：`darkMode`（深色模式开关）、`showPostCover`（文章封面）、`showReadingTime`（阅读时长）
 - **paper**：`darkMode`、`accentColor`（点缀色）、`numberedHeadings`（章节编号）、`showCitation`（BibTeX 引用）、`author`（引用署名）、`showPostCover`（文章封面）
 - **minimal**：`darkMode`、`footerText`（页脚文字）、`showPostMeta`（文章元信息）
 - **terminal**：`promptSymbol`（终端提示符符号）、`showScanlines`（扫描线质感）
 
-完整的选项机制说明见 [主题文档](./THEMES.md)。
+选项机制见 [主题开发契约](./THEMES.md)。
 
 ## 五、（可选）Notion 更新自动部署
 
