@@ -22,6 +22,7 @@ const LANG_LOADERS: Record<string, () => Promise<unknown>> = {
   json: () => import('prismjs/components/prism-json'),
   yaml: () => import('prismjs/components/prism-yaml'),
   markdown: () => import('prismjs/components/prism-markdown'),
+  diff: () => import('prismjs/components/prism-diff'),
   bash: () => import('prismjs/components/prism-bash'),
   python: () => import('prismjs/components/prism-python'),
   java: () => import('prismjs/components/prism-java'),
