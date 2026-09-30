@@ -68,6 +68,8 @@ jobs:
           source-directory: 'dist'
           destination-github-username: ${{ vars.DEPLOY_USERNAME }}
           destination-repository-name: ${{ vars.DEPLOY_REPOSITORY }}
+          user-name: ${{ vars.DEPLOY_GIT_USERNAME }}
+          user-email: ${{ vars.DEPLOY_GIT_EMAIL || format('{0}@users.noreply.github.com', vars.DEPLOY_USERNAME) }}
           target-branch: ${{ vars.DEPLOY_BRANCH || 'main' }}
           commit-message: |
             Deploy: Update from ${{ github.repository }}@${{ github.sha }}
