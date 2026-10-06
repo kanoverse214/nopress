@@ -242,6 +242,10 @@ blockquote.notion-red-background {
   min-width: 0;
 }
 
+.notion-content .notion-callout-content > p:first-child {
+  margin-top: 0;
+}
+
 /* Callout 颜色变体 */
 .notion-callout.notion-gray-background {
   background-color: #ebeced;
