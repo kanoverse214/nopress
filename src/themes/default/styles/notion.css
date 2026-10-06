@@ -1745,7 +1745,7 @@ code.notion-equation .katex {
 /* Mention */
 .notion-mention {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.25em;
   background-color: transparent;
   padding: 0 0.2em;
@@ -1755,7 +1755,7 @@ code.notion-equation .katex {
   transition: background-color var(--transition-fast);
   border: none;
   vertical-align: baseline;
-  line-height: 1;
+  line-height: inherit;
 }
 
 .notion-mention:hover {
@@ -1786,6 +1786,7 @@ a.notion-mention:hover,
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  align-self: center;
 }
 
 .notion-content .notion-mention-favicon {
@@ -1797,9 +1798,7 @@ a.notion-mention:hover,
 }
 
 .notion-mention-text {
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
+  line-height: inherit;
 }
 
 /* ========== 不支持的块 ========== */
