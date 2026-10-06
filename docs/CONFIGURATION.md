@@ -335,9 +335,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: 18
+          node-version-file: .nvmrc
 
       - name: Install dependencies
         run: npm ci

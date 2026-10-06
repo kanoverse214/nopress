@@ -14,9 +14,9 @@ jobs:
 
       # 2. 设置 Node.js 环境
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 'lts/*'
+          node-version-file: .nvmrc
           cache: 'npm'
 
       # 3. 安装依赖
