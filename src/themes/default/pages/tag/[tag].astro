@@ -139,6 +139,7 @@ const { tag, posts, displayTag } = Astro.props;
     font-size: 0.875rem;
     color: var(--notion-text-secondary);
     margin: 0;
+    transition: color var(--transition);
   }
 
   /* 文章列表 */
@@ -150,8 +151,8 @@ const { tag, posts, displayTag } = Astro.props;
   }
 
   .post-card {
-    background-color: var(--notion-bg-primary);
-    transition: background-color var(--transition-fast);
+    background-color: transparent;
+    transition: background-color var(--transition);
     border-radius: var(--radius-sm);
   }
 
@@ -165,6 +166,7 @@ const { tag, posts, displayTag } = Astro.props;
     text-decoration: none;
     color: inherit;
     border: none;
+    transition: none;
   }
 
   .row-link:hover {
@@ -218,7 +220,7 @@ const { tag, posts, displayTag } = Astro.props;
     line-height: 1.3;
     margin: 0;
     color: var(--notion-text-primary);
-    transition: color var(--transition-fast);
+    transition: color var(--transition);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -232,6 +234,7 @@ const { tag, posts, displayTag } = Astro.props;
     flex-shrink: 0;
     font-size: 0.8125rem;
     color: var(--notion-text-tertiary);
+    transition: color var(--transition);
   }
 
   /* 标签行 */
@@ -251,7 +254,7 @@ const { tag, posts, displayTag } = Astro.props;
     border-radius: 3px;
     font-size: 0.75rem;
     font-weight: 500;
-    transition: background-color var(--transition-fast);
+    transition: background-color var(--transition), color var(--transition);
   }
 
   .tag-pill.active {
@@ -269,6 +272,7 @@ const { tag, posts, displayTag } = Astro.props;
     line-height: 1.5;
     color: var(--notion-text-secondary);
     margin: 0;
+    transition: color var(--transition);
     margin-left: calc(1.125rem + var(--spacing-sm)); /* 对齐图标 */
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -286,6 +290,7 @@ const { tag, posts, displayTag } = Astro.props;
   .meta-item {
     font-size: 0.75rem;
     color: var(--notion-text-tertiary);
+    transition: color var(--transition);
   }
 
   /* 页面底部 */
@@ -301,7 +306,7 @@ const { tag, posts, displayTag } = Astro.props;
     text-decoration: none;
     padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: var(--radius-sm);
-    transition: background-color var(--transition-fast), color var(--transition-fast);
+    transition: background-color var(--transition), color var(--transition);
     border: none;
   }
 

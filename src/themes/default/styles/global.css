@@ -55,6 +55,13 @@
   --transition: 200ms ease;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0s;
+    --transition: 0s;
+  }
+}
+
 /* ========== 深色主题 ========== */
 
 :root.dark {
@@ -110,6 +117,7 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 1.4em;
   margin-bottom: 0.5em;
   color: var(--notion-text-primary);
+  transition: color var(--transition);
 }
 
 h1 {
