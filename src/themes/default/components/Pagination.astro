@@ -151,7 +151,7 @@ const showNext = currentPage < totalPages;
     background-color: var(--notion-bg-secondary);
     border-radius: 3px;
     text-decoration: none;
-    transition: background-color var(--transition-fast), color var(--transition-fast);
+    transition: background-color var(--transition), color var(--transition);
     white-space: nowrap;
   }
 
@@ -186,6 +186,7 @@ const showNext = currentPage < totalPages;
     height: 36px;
     color: var(--notion-text-tertiary);
     font-size: 0.875rem;
+    transition: color var(--transition);
   }
 
   .pagination-placeholder {
