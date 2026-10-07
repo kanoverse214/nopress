@@ -12,6 +12,7 @@ import '../styles/search.css';
 interface Props {
   title?: string;
   description?: string;
+  /** 分享卡片图片（文章封面），缺省用站点 OG 图 */
   image?: string;
   canonicalURL?: string;
   /** 本页 Markdown 版本 URL（供 AI Agent 自动发现） */
@@ -24,6 +25,7 @@ const SITE_CONFIG = await getResolvedSiteConfig();
 const {
   title = SITE_CONFIG.title,
   description,
+  image,
   canonicalURL,
   markdownUrl,
 } = Astro.props;
@@ -41,6 +43,7 @@ const metaTags = generateMetaTags(
   canonical.pathname,
   description,
 );
+const ogImage = image || metaTags.ogImage;
 ---
 
 <!doctype html>
@@ -70,14 +73,14 @@ const metaTags = generateMetaTags(
     <meta property="og:url" content={metaTags.ogUrl} />
     <meta property="og:title" content={metaTags.ogTitle} />
     <meta property="og:description" content={metaTags.ogDescription} />
-    <meta property="og:image" content={metaTags.ogImage} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content={metaTags.twitterCard} />
     {metaTags.twitterSite && <meta name="twitter:site" content={metaTags.twitterSite} />}
     <meta name="twitter:title" content={metaTags.twitterTitle} />
     <meta name="twitter:description" content={metaTags.twitterDescription} />
-    <meta name="twitter:image" content={metaTags.twitterImage} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
 
     <!-- PhotoSwipe 样式改为在有图片的页面临近使用时注入（见 scripts/image-gallery.ts），避免全站加载 -->
   </head>
