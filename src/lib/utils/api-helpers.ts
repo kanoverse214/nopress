@@ -227,9 +227,10 @@ export const notionRetryHelper = new RetryHelper({
   maxDelay: 30000,
 });
 
-// 非官方 API（notion-client）专用限流器：低并发 + 请求间隔
-// Notion 私有接口限流较严格，高频调用会触发 429
-export const notionUnofficialRateLimiter = new RateLimiter(2, 350);
+// 非官方 API（notion-client）专用限流器。
+// 6 并发/150ms 是实测的冷构建上限，再高不再提速；触发 429 会被
+// notionUnofficialRetryHelper 退避重试，最坏只是变慢而非失败
+export const notionUnofficialRateLimiter = new RateLimiter(6, 150);
 
 // 非官方 API 专用重试助手：与官方 API 相同的重试次数，更长初始延迟
 export const notionUnofficialRetryHelper = new RetryHelper({

@@ -7,6 +7,7 @@ import { Client } from '@notionhq/client';
 import { NotionAPI as NotionAPILib, type SignedUrlRequest } from 'notion-client';
 import { resolveIcon, resolveCover, type FileOwner } from '../file-url';
 import {
+  RetryHelper,
   notionRateLimiter,
   notionRetryHelper,
   notionUnofficialRateLimiter,
@@ -14,6 +15,12 @@ import {
 } from '../../utils/api-helpers';
 import { handleContentFailure } from '../../utils/failure';
 import type { NotionPage, NotionBlock, BlockValue, PageData, DatabaseMeta } from './types';
+
+/**
+ * 签名 URL 专用重试：Notion getSignedFileUrls 对部分块稳定返回 500（API 缺陷，
+ * 非内容缺失），多重退避重试纯属浪费；只留 1 次重试应对瞬态抖动。
+ */
+const signingRetry = new RetryHelper({ maxRetries: 1, initialDelay: 1000 });
 
 // 重新导出类型
 export type { NotionPage, NotionBlock, BlockValue, PageData, DatabaseMeta } from './types';
@@ -585,7 +592,7 @@ export class NotionAPI {
       chunks.map(async (chunk, index) => {
         const offset = index * CHUNK_SIZE;
         try {
-          const res = await notionUnofficialRetryHelper.execute(
+          const res = await signingRetry.execute(
             () =>
               notionUnofficialRateLimiter.execute(() =>
                 this.unofficialClient.getSignedFileUrls(chunk)

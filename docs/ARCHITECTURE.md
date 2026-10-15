@@ -11,7 +11,7 @@ NotionDataService (src/lib/notion/service)      ← 所有取数的唯一入口
     ↓ 检查 notionCache（命中 → 直接返回）
 NotionAPI (src/lib/notion/api)
     ├── 官方 SDK：RateLimiter(5 并发, 50ms 间隔) + RetryHelper(指数退避)
-    └── 非官方 API (notion-client)：RateLimiter(2 并发, 350ms 间隔)
+    └── 非官方 API (notion-client)：RateLimiter(6 并发, 150ms 间隔)
     ↓
 Notion API
     ↓
@@ -63,7 +63,7 @@ Notion API 封装，同时使用**官方 SDK 和非官方 API**：
 
 - `block-renderer.ts` — 核心渲染逻辑，按块类型 switch，支持 30+ 块类型（段落、标题、列表、代码、表格、callout、toggle、column、synced_block、embed 等），递归渲染子块
 - `rich-text.ts` — 富文本格式（粗体、斜体、颜色、公式内联）
-- `index.ts` — 页面级渲染入口，协调 OG 抓取、文件 URL 解析等后处理
+- `index.ts` — 页面级渲染入口，协调 OG 抓取、文件 URL 解析等后处理；`renderPage` 并行拉取页面数据（非官方，格式信息）与页面块（官方），两者互不依赖
 
 代码高亮（Prism.js）和数学公式（KaTeX）在客户端由 `src/scripts/` 渲染。
 
@@ -104,8 +104,8 @@ LayoutRenderer (渲染层)
 
 ### 6. API 优化（`src/lib/utils/api-helpers.ts`）
 
-- **RateLimiter** — 并发控制。官方 API `notionRateLimiter`（5 并发, 50ms 最小间隔）；非官方 API `notionUnofficialRateLimiter`（2 并发, 350ms 间隔）
-- **RetryHelper** — 自动重试临时性错误（网络错误、5xx、429），权限错误（401/403）直接抛出。官方 API 最多重试 3 次，指数退避 1s → 2s → 4s；非官方 API 最多重试 3 次，指数退避 2s → 4s → 8s。延迟上限均为 30s。RetryHelper 包在 RateLimiter 外层（retry → limiter），退避等待期间释放并发槽位。`quiet` 选项让第三方装饰抓取（OG/oEmbed）不打印每次尝试日志，构建噪声只留调用方的一行摘要
+- **RateLimiter** — 并发控制。官方 API `notionRateLimiter`（5 并发, 50ms 最小间隔）；非官方 API `notionUnofficialRateLimiter`（6 并发, 150ms 间隔，冷构建实测上限）
+- **RetryHelper** — 自动重试临时性错误（网络错误、5xx、429），权限错误（401/403）直接抛出。官方 API 最多重试 3 次，指数退避 1s → 2s → 4s；非官方 API 最多重试 3 次，指数退避 2s → 4s → 8s。延迟上限均为 30s。RetryHelper 包在 RateLimiter 外层（retry → limiter），退避等待期间释放并发槽位。`quiet` 选项让第三方装饰抓取（OG/oEmbed）不打印每次尝试日志，构建噪声只留调用方的一行摘要。文件签名 URL（`signPageFileUrls`）改用 1 次重试的 `signingRetry`：Notion `getSignedFileUrls` 对部分块稳定返回 500，多重退避重试纯属浪费
 - **调用接入** — 官方 SDK 调用统一经 `NotionAPI.official(label, fn)`（组合为 `retry(limiter(fn))`），非官方调用经 `fetchBlocksGuarded` 等专用 helper；限流与重试都收敛在调用层，`renderPage` 不再有外层重试
 
 ### 7. 文件 URL 统一解析（`src/lib/notion/file-url.ts`）

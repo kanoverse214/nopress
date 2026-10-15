@@ -45,18 +45,24 @@ export class NotionPageRenderer {
    * 占位内容会被 service 层当作正文写入缓存，残缺页面随构建静默发布
    */
   async renderPage(pageId: string): Promise<string> {
-    // 预获取页面数据（自动缓存格式信息）
-    try {
-      await notionAPI.getPageData(pageId);
-    } catch (error) {
-      // 内容类失败（严失败策略）向上抛，交给 service 的重试/失败处理；
-      // 仅格式信息缺失可继续渲染（无样式）
+    // 页面数据（格式信息，非官方 API）与页面块（官方 API）互不依赖，并行拉取。
+    // 页面数据失败可继续渲染（无样式），内容类失败仍向上抛；页面块失败直接抛。
+    const [pageDataResult, blocksResult] = await Promise.allSettled([
+      notionAPI.getPageData(pageId),
+      notionAPI.getPageBlocks(pageId),
+    ]);
+
+    if (pageDataResult.status === 'rejected') {
+      const error = pageDataResult.reason;
       if (error instanceof ContentRenderError) throw error;
       console.warn(`[NotionRenderer] Failed to fetch format data:`, error);
     }
 
-    // 获取页面块
-    const blocks = await notionAPI.getPageBlocks(pageId);
+    if (blocksResult.status === 'rejected') {
+      throw blocksResult.reason;
+    }
+
+    const blocks = blocksResult.value;
 
     if (!blocks || blocks.length === 0) {
       return '<p><em>No content available.</em></p>';

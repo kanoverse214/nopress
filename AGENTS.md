@@ -62,7 +62,7 @@ src/
 └── scripts/              # 客户端脚本：TOC、代码高亮、KaTeX、mermaid、图片灯箱、giscus
 ```
 
-**数据流**：页面/端点 → `dataService`（查缓存）→ `notionAPI`（官方 API 限流 5 并发，非官方 2 并发 + 指数退避重试）→ Notion API → `renderer`（blocks → HTML）→ 结果写入缓存 → 返回 `Post` 对象。详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+**数据流**：页面/端点 → `dataService`（查缓存）→ `notionAPI`（官方 API 限流 5 并发，非官方 6 并发 + 指数退避重试）→ Notion API → `renderer`（blocks → HTML）→ 结果写入缓存 → 返回 `Post` 对象。详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## 关键约定
 
