@@ -222,14 +222,43 @@ export class NotionAPI {
   }
 
   /**
+   * dataSource 查询单页上限 100，需跨页取全；不分页会静默截断后续数据。
+   */
+  private async queryAllDataSourcePages(params: {
+    data_source_id: string;
+    filter?: Record<string, unknown>;
+    sorts?: Array<Record<string, unknown>>;
+  }): Promise<NotionPage[]> {
+    const results: NotionPage[] = [];
+    let cursor: string | undefined = undefined;
+
+    do {
+      // @ts-ignore - SDK 5.x uses dataSources.query
+      const response = await this.officialClient.dataSources.query({
+        ...params,
+        start_cursor: cursor,
+        page_size: 100,
+      });
+
+      results.push(...(response.results as NotionPage[]));
+
+      if (!response.has_more || !response.next_cursor) {
+        break;
+      }
+      cursor = response.next_cursor;
+    } while (cursor);
+
+    return results;
+  }
+
+  /**
    * 查询已发布文章 (type=Post, status=Published)
    */
   async queryPublishedPosts(): Promise<NotionPage[]> {
     try {
       const dataSourceId = await this.getDataSourceId();
 
-      // @ts-ignore - SDK 5.x uses dataSources.query
-      const response = await this.officialClient.dataSources.query({
+      return await this.queryAllDataSourcePages({
         data_source_id: dataSourceId,
         filter: {
           and: [
@@ -239,8 +268,6 @@ export class NotionAPI {
         },
         sorts: [{ property: 'date', direction: 'descending' }],
       });
-
-      return response.results as NotionPage[];
     } catch (error) {
       console.error('[NotionAPI] Error querying posts:', error);
       throw new Error(`Failed to fetch posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -254,8 +281,7 @@ export class NotionAPI {
     try {
       const dataSourceId = await this.getDataSourceId();
 
-      // @ts-ignore
-      const response = await this.officialClient.dataSources.query({
+      return await this.queryAllDataSourcePages({
         data_source_id: dataSourceId,
         filter: {
           and: [
@@ -265,8 +291,6 @@ export class NotionAPI {
         },
         sorts: [{ property: 'date', direction: 'ascending' }],
       });
-
-      return response.results as NotionPage[];
     } catch (error) {
       console.error('[NotionAPI] Error querying menu items:', error);
       return [];
@@ -280,8 +304,7 @@ export class NotionAPI {
     try {
       const dataSourceId = await this.getDataSourceId();
 
-      // @ts-ignore
-      const response = await this.officialClient.dataSources.query({
+      return await this.queryAllDataSourcePages({
         data_source_id: dataSourceId,
         filter: {
           and: [
@@ -291,8 +314,6 @@ export class NotionAPI {
         },
         sorts: [{ property: 'date', direction: 'descending' }],
       });
-
-      return response.results as NotionPage[];
     } catch (error) {
       console.error('[NotionAPI] Error querying pages:', error);
       throw new Error(`Failed to fetch pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -301,6 +322,7 @@ export class NotionAPI {
 
   /**
    * 查询子数据库行（用于 child_database 渲染）
+   * pageSize 为取回行数上限；hasMore 表示服务端仍有更多行。
    */
   async queryDatabaseRows(
     databaseId: string,
@@ -308,17 +330,27 @@ export class NotionAPI {
   ): Promise<{ results: NotionPage[]; hasMore: boolean }> {
     try {
       const dataSourceId = await this.getDataSourceIdForDatabase(databaseId);
+      const limit = options.pageSize && options.pageSize > 0 ? options.pageSize : 100;
 
-      // @ts-ignore
-      const response = await this.officialClient.dataSources.query({
-        data_source_id: dataSourceId,
-        page_size: options.pageSize || 100,
-      });
+      const results: NotionPage[] = [];
+      let cursor: string | undefined = undefined;
+      let hasMore = false;
 
-      return {
-        results: response.results as NotionPage[],
-        hasMore: response.has_more || false,
-      };
+      do {
+        // @ts-ignore - SDK 5.x uses dataSources.query
+        const response = await this.officialClient.dataSources.query({
+          data_source_id: dataSourceId,
+          start_cursor: cursor,
+          page_size: Math.min(100, limit - results.length),
+        });
+
+        results.push(...(response.results as NotionPage[]));
+
+        hasMore = response.has_more || false;
+        cursor = hasMore && response.next_cursor ? response.next_cursor : undefined;
+      } while (cursor && results.length < limit);
+
+      return { results, hasMore };
     } catch (error) {
       console.error(`[NotionAPI] Error querying database ${databaseId}:`, error);
       throw new Error(`Failed to query database: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -390,12 +422,26 @@ export class NotionAPI {
    */
   async getChildBlocks(blockId: string): Promise<NotionBlock[]> {
     try {
-      const response = await this.officialClient.blocks.children.list({
-        block_id: blockId,
-        page_size: 100,
-      });
+      const blocks: NotionBlock[] = [];
+      let cursor: string | undefined = undefined;
 
-      return response.results as NotionBlock[];
+      while (true) {
+        const response = await this.officialClient.blocks.children.list({
+          block_id: blockId,
+          start_cursor: cursor,
+          page_size: 100,
+        });
+
+        blocks.push(...(response.results as NotionBlock[]));
+
+        if (!response.has_more || !response.next_cursor) {
+          break;
+        }
+
+        cursor = response.next_cursor;
+      }
+
+      return blocks;
     } catch (error) {
       console.error(`[NotionAPI] Error fetching child blocks for ${blockId}:`, error);
       return [];
