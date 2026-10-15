@@ -5,7 +5,7 @@
 
 import { Client } from '@notionhq/client';
 import { NotionAPI as NotionAPILib, type SignedUrlRequest } from 'notion-client';
-import { resolveIcon, resolveCover } from '../file-url';
+import { resolveIcon, resolveCover, type FileOwner } from '../file-url';
 import {
   notionUnofficialRateLimiter,
   notionUnofficialRetryHelper,
@@ -41,6 +41,8 @@ export class NotionAPI {
   private dataSourceId: string | null = null;
   // 其他数据库的 data source ID 缓存
   private dataSourceIdCache: Map<string, string> = new Map();
+  // 主数据库对象（getDataSourceId 顺带获取，供 getDatabaseMeta 复用）
+  private mainDatabase: any = null;
 
   // ======= 块级缓存（内存级，单次构建有效）=======
   private blockCache: Map<string, BlockValue> = new Map();
@@ -98,6 +100,7 @@ export class NotionAPI {
         throw new Error('No data source ID found in database');
       }
 
+      this.mainDatabase = database;
       this.dataSourceId = dataSourceId;
       return dataSourceId;
     } catch (error) {
@@ -136,82 +139,37 @@ export class NotionAPI {
    */
   async getDatabaseMeta(): Promise<DatabaseMeta> {
     try {
-      const database = await this.officialClient.databases.retrieve({
-        database_id: this.databaseId,
-      });
+      // 复用 getDataSourceId 的 databases.retrieve 结果，避免重复请求
+      const dataSourceId = await this.getDataSourceId();
+      const database = this.mainDatabase;
 
-      // @ts-ignore
       const titleArray = database.title || [];
       const title = titleArray.map((t: any) => t.plain_text || '').join('') || '';
 
-      // @ts-ignore
       const descArray = database.description || [];
       const description = descArray.map((d: any) => d.plain_text || '').join('') || '';
 
-      // 封面与图标（自动缓存）
-      //
-      // 封面按存储位置解析（归属记录决定代理鉴权）：
-      // 1. 官方 API external → 直通
-      // 2. collection.cover（旧版存储位置）→ 代理（table=collection）
-      // 3. block format.page_cover（现行存储位置）→ 代理（table=block）。
-      //    URL 取官方 API 的文件对象而非 recordMap 原始引用（attachment:
-      //    形式经代理无法访问）
-      let coverUrl = '';
+      // 数据库 icon/cover 由官方 API 直接提供，代理归属恒为 collection 记录，
+      // 其 id 即 data source id；file 类型 URL 短期签名由 toProxyUrl 剥除。
+      const owner: FileOwner = { id: dataSourceId, table: 'collection' };
+      const coverUrl = resolveCover(database.cover, owner);
+      const icon = resolveIcon(database.icon, owner);
+
+      // 封面位置仅存于非官方 recordMap 的 format.page_cover_position，官方 API 不提供
       let coverPosition: number | undefined;
-      let icon = '';
-      const officialCover = (database as any).cover;
-
-      if (officialCover?.type === 'external') {
-        coverUrl = resolveCover(officialCover, { id: this.databaseId, table: 'block' });
-      }
-
       try {
         const pageData = await this.getPageData(this.databaseId);
-
-        const collectionRecord = pageData.collection || {};
-        // 兼容原始格式（spaceId 包装的双层 value）和缓存重组格式（单层 value）
-        const collectionId = Object.keys(collectionRecord)[0];
-        const collectionValue = collectionId
-          ? collectionRecord[collectionId]?.value?.value ??
-            collectionRecord[collectionId]?.value
-          : null;
-
-        if (!coverUrl && collectionValue?.cover) {
-          coverUrl = resolveCover(collectionValue.cover, {
-            id: collectionId,
-            table: 'collection',
-          });
-        }
-
-        if (collectionValue?.icon) {
-          icon = resolveIcon(collectionValue.icon, {
-            id: collectionId,
-            table: 'collection',
-          });
-        }
-
-        // 数据库页面位置存储在 collection_view_page block 的 format 中，
-        // 即使封面 URL 已从 collection.cover 取得，也要读取该 block 的位置。
         const blockMap = pageData.block || {};
         const dbBlock =
           blockMap[toDashedId(this.databaseId)]?.value ??
           blockMap[this.databaseId]?.value;
-        const pageFormat = (dbBlock as any)?.format;
-        const pageCover = pageFormat?.page_cover as string | undefined;
-        const rawPosition = pageFormat?.page_cover_position;
+        const rawPosition = (dbBlock as any)?.format?.page_cover_position;
 
         if (typeof rawPosition === 'number' && Number.isFinite(rawPosition) && rawPosition >= 0 && rawPosition <= 1) {
           coverPosition = Number(((1 - rawPosition) * 100).toFixed(2));
         }
-
-        if (!coverUrl && pageCover) {
-          coverUrl = resolveCover(officialCover, {
-            id: toDashedId(this.databaseId),
-            table: 'block',
-          });
-        }
       } catch (error) {
-        console.warn('[NotionAPI] Failed to fetch cover/icon:', error);
+        console.warn('[NotionAPI] Failed to fetch cover position:', error);
       }
 
       return { title, description, coverUrl, coverPosition, icon };
