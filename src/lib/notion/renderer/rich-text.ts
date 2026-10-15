@@ -197,8 +197,9 @@ async function renderLinkMention(
 
     // 优先使用 og:logo，其次用 Google Favicon
     const faviconUrl = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=16`;
+    // 已由 toHttpUrl 归一化，勿再转义
     const icon = ogData?.logo
-      ? `<img src="${escapeHtml(ogData.logo)}" alt="" class="notion-mention-favicon" loading="lazy" onerror="this.style.display='none'" />`
+      ? `<img src="${ogData.logo}" alt="" class="notion-mention-favicon" loading="lazy" onerror="this.style.display='none'" />`
       : `<img src="${faviconUrl}" alt="" class="notion-mention-favicon" loading="lazy" onerror="this.style.display='none'" />`;
 
     return { icon, displayText };
@@ -246,8 +247,9 @@ async function renderLinkPreview(
 
     // 优先使用 og:logo，其次用 Google Favicon
     const faviconUrl = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=16`;
+    // 已由 toHttpUrl 归一化，勿再转义
     const icon = ogData?.logo
-      ? `<img src="${escapeHtml(ogData.logo)}" alt="" class="notion-mention-favicon" loading="lazy" onerror="this.style.display='none'" />`
+      ? `<img src="${ogData.logo}" alt="" class="notion-mention-favicon" loading="lazy" onerror="this.style.display='none'" />`
       : `<img src="${faviconUrl}" alt="" class="notion-mention-favicon" loading="lazy" onerror="this.style.display='none'" />`;
 
     return { icon, displayText };

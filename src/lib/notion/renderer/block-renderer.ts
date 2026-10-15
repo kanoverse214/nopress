@@ -881,13 +881,14 @@ export class NotionBlockRenderer {
         // URL 非法时无图标
       }
     }
+    // 已由 toHttpUrl 归一化，勿再转义
     const icon = iconSrc
-      ? `<img class="notion-bookmark-icon" src="${escapeHtml(iconSrc)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+      ? `<img class="notion-bookmark-icon" src="${iconSrc}" alt="" loading="lazy" onerror="this.style.display='none'" />`
       : '';
 
     return `<figure class="notion-bookmark">
       <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">
-        ${ogData?.image ? `<div class="notion-bookmark-cover"><img src="${escapeHtml(ogData.image)}" alt="" loading="lazy" /></div>` : ''}
+        ${ogData?.image ? `<div class="notion-bookmark-cover"><img src="${ogData.image}" alt="" loading="lazy" /></div>` : ''}
         <div class="notion-bookmark-info">
           ${icon}
           <div class="notion-bookmark-title">${escapeHtml(title)}</div>

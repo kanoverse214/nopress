@@ -62,7 +62,9 @@ const ogRetry = new RetryHelper({
 });
 
 /**
- * 归一化并限制为 http/https，挡掉 javascript:/data: 等被注入 <img src> 的 scheme
+ * 归一化为 http/https 绝对 URL，挡掉 javascript:/data: 等被注入 <img src> 的 scheme。
+ * `new URL().toString()` 已百分号编码 `"` `<` `>`，返回值可安全嵌入 HTML 属性；
+ * 调用方勿再转义——抓取值可能已是实体（如 `&amp;`），再转义会二次编码。
  */
 function toHttpUrl(raw: string, baseUrl: string): string {
   try {
@@ -194,8 +196,8 @@ export async function fetchOpenGraphData(
     );
 
     const { data, html, baseUrl } = fetched;
-    // metascraper-logo 可能返回相对路径，统一按最终 URL 解析并限制 scheme
-    const logo = toHttpUrl(data.logo || '', baseUrl);
+    // 空值保持为空，否则 toHttpUrl('') 会退化成 baseUrl，跳过下面的 favicon 回退
+    const logo = data.logo ? toHttpUrl(data.logo, baseUrl) : '';
     const ogData: OpenGraphData = {
       title: data.title || '',
       description: data.description || '',
