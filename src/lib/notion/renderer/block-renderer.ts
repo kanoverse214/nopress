@@ -11,6 +11,7 @@ import type { FileOwner } from '../file-url';
 import { fetchOpenGraphData } from '../opengraph';
 import type { OpenGraphData } from '../opengraph';
 import { RetryHelper } from '../../utils/api-helpers';
+import { handleContentFailure, wrapContentError } from '../../utils/failure';
 
 /** 正文内容列宽（px），与默认主题容器一致，用于 sizes 插槽估算 */
 const CONTENT_WIDTH = 900;
@@ -77,24 +78,33 @@ export class NotionBlockRenderer {
     while (i < blocks.length) {
       const block = blocks[i];
 
-      // 处理列表的连续项（需要包裹在 ul/ol 中）
-      if (this.isListItem(block)) {
-        const listItems: BlockObjectResponse[] = [];
-        const listType = this.getListType(block);
+      // 单块渲染失败时保留 block 上下文再抛：严失败策略不变，但报错可定位
+      try {
+        // 处理列表的连续项（需要包裹在 ul/ol 中）
+        if (this.isListItem(block)) {
+          const listItems: BlockObjectResponse[] = [];
+          const listType = this.getListType(block);
 
-        // 收集连续的相同类型列表项
-        while (i < blocks.length && this.isListItem(blocks[i]) && this.getListType(blocks[i]) === listType) {
-          listItems.push(blocks[i]);
+          // 收集连续的相同类型列表项
+          while (i < blocks.length && this.isListItem(blocks[i]) && this.getListType(blocks[i]) === listType) {
+            listItems.push(blocks[i]);
+            i++;
+          }
+
+          // 渲染整个列表
+          const html = await this.renderList(listItems, listType, context);
+          htmlParts.push(html);
+        } else {
+          const html = await this.renderBlock(block, context);
+          if (html) htmlParts.push(html);
           i++;
         }
-
-        // 渲染整个列表
-        const html = await this.renderList(listItems, listType, context);
-        htmlParts.push(html);
-      } else {
-        const html = await this.renderBlock(block, context);
-        if (html) htmlParts.push(html);
-        i++;
+      } catch (error) {
+        throw wrapContentError('block', {
+          pageId: context.pageId,
+          blockId: block.id,
+          blockType: block.type,
+        }, error);
       }
     }
 
@@ -1194,7 +1204,11 @@ export class NotionBlockRenderer {
           return await this.renderBlocks(children, context);
         }
       } catch (error) {
-        console.warn(`[SyncedBlock] Failed to fetch original block ${originalBlockId}:`, error);
+        handleContentFailure('synced block content', {
+          pageId: context.pageId,
+          blockId: originalBlockId,
+          blockType: 'synced_block',
+        }, error);
       }
 
       return '';

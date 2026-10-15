@@ -92,6 +92,7 @@ export interface RenderContext {
   inList: boolean; // 是否在列表内
   listType?: 'bulleted' | 'numbered' | 'todo'; // 列表类型
   widthScale?: number; // 列布局累计宽度比例（0-1），用于收敛图片请求宽度与 sizes 插槽
+  pageId?: string; // 正在渲染的页面 ID，用于失败上下文定位
 }
 
 /**

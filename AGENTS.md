@@ -56,7 +56,7 @@ src/
 │   ├── search/           # 全文搜索内核接口：documents、endpoint（/search-docs.json，经 integration.ts 按 SITE_ENABLE_SEARCH 注入）、client（无头客户端 minisearch）
 │   ├── theme/            # 主题系统：manager / loader / zod schema / astro-integration
 │   ├── config/loader.ts  # 环境变量配置加载（SITE_*、COMMENTS_*）
-│   └── utils/            # slug / date / format / api-helpers（RateLimiter + RetryHelper）/ version（构建 commit id）
+│   └── utils/            # slug / date / format / api-helpers（RateLimiter + RetryHelper）/ failure（失败策略）/ version（构建 commit id）
 ├── config/               # site.ts 默认值 + resolved-site.ts（可回填 Notion Database 元信息）
 ├── core/                 # meta-helpers（<head> 标签生成）
 └── scripts/              # 客户端脚本：TOC、代码高亮、KaTeX、mermaid、图片灯箱、giscus

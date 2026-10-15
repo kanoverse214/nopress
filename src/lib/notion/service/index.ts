@@ -22,10 +22,10 @@ import type { NotionPage } from '../api/types';
 import type { NotionPageRenderer } from '../renderer';
 import { createPageRenderer } from '../renderer';
 import { notionAPI } from '../api';
-import { slugify, slugMatch } from '../../utils/slug';
+import { slugify, slugMatch, isValidSlug } from '../../utils/slug';
 import { compareDate } from '../../utils/date';
 import { calculateReadingTime, generateExcerpt } from '../../utils/format';
-import { notionRateLimiter, notionRetryHelper } from '../../utils/api-helpers';
+import { handleContentFailure } from '../../utils/failure';
 import { notionCache } from '../../cache';
 import { resolveIcon, resolveCover } from '../file-url';
 import type { FileOwner } from '../file-url';
@@ -67,8 +67,22 @@ class NotionDataService implements DataService {
       .filter((post): post is Post => post !== null)
       .sort((a, b) => compareDate(b.publishedAt, a.publishedAt));
 
+    this.reportInvalidSlugs('post', validPosts);
+
     await notionCache.set(cacheKey, validPosts);
     return validPosts;
+  }
+
+  /**
+   * 无效 slug 的条目不会产出路由，静默跳过会造成「少一篇」而无人察觉。
+   * 严失败模式抛出，宽松模式列出全部并继续。
+   */
+  private reportInvalidSlugs(kind: string, items: Post[]): void {
+    const invalid = items.filter(item => !isValidSlug(item.slug));
+    if (invalid.length === 0) return;
+
+    const detail = invalid.map(item => `"${item.slug}" (${item.title})`).join(', ');
+    handleContentFailure(`${kind} slug validation`, { slug: invalid[0].slug }, new Error(`invalid slugs: ${detail}`));
   }
 
   /**
@@ -179,6 +193,8 @@ class NotionDataService implements DataService {
 
     const validPages = pageContents.filter((page): page is Post => page !== null);
 
+    this.reportInvalidSlugs('page', validPages);
+
     await notionCache.set(cacheKey, validPages);
     return validPages;
   }
@@ -215,12 +231,9 @@ class NotionDataService implements DataService {
     }
 
     // 渲染失败不吞错：空内容/占位内容一旦写入 all-posts 缓存，
-    // 残缺文章会随构建静默发布，重试与构建失败是更诚实的行为
-    const html = await notionRetryHelper.execute(
-      () =>
-        notionRateLimiter.execute(() => this.renderer.renderPage(page.id)),
-      `Rendering page ${page.id} to HTML`
-    );
+    // 残缺文章会随构建静默发布。重试已下沉到官方/非官方 API 调用层，
+    // 此处不再吞错，失败向上抛由构建终止。
+    const html = await this.renderer.renderPage(page.id);
 
     const excerpt = metadata.description || generateExcerpt(html, 200);
     const readingTime = calculateReadingTime(html);

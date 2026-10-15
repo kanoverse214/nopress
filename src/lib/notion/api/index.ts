@@ -7,9 +7,12 @@ import { Client } from '@notionhq/client';
 import { NotionAPI as NotionAPILib, type SignedUrlRequest } from 'notion-client';
 import { resolveIcon, resolveCover, type FileOwner } from '../file-url';
 import {
+  notionRateLimiter,
+  notionRetryHelper,
   notionUnofficialRateLimiter,
   notionUnofficialRetryHelper,
 } from '../../utils/api-helpers';
+import { handleContentFailure } from '../../utils/failure';
 import type { NotionPage, NotionBlock, BlockValue, PageData, DatabaseMeta } from './types';
 
 // 重新导出类型
@@ -79,6 +82,14 @@ export class NotionAPI {
     this.databaseId = databaseId;
   }
 
+  /**
+   * 官方 SDK 调用统一入口：限流 + 重试（retry → limiter）。
+   * 失败在重试耗尽后才向上抛，调用方的 handleContentFailure 是「终态」决定。
+   */
+  private official<T>(label: string, fn: () => Promise<T>): Promise<T> {
+    return notionRetryHelper.execute(() => notionRateLimiter.execute(fn), label);
+  }
+
   // ============== 数据库操作 ==============
 
   /**
@@ -90,9 +101,11 @@ export class NotionAPI {
     }
 
     try {
-      const database = await this.officialClient.databases.retrieve({
-        database_id: this.databaseId,
-      });
+      const database = await this.official('Retrieving main database', () =>
+        this.officialClient.databases.retrieve({
+          database_id: this.databaseId,
+        })
+      );
 
       // @ts-ignore - SDK 5.x returns data_sources array
       const dataSourceId = database.data_sources?.[0]?.id;
@@ -117,9 +130,11 @@ export class NotionAPI {
     if (cached) return cached;
 
     try {
-      const database = await this.officialClient.databases.retrieve({
-        database_id: databaseId,
-      }) as any;
+      const database = await this.official(`Retrieving database ${databaseId}`, () =>
+        this.officialClient.databases.retrieve({
+          database_id: databaseId,
+        })
+      ) as any;
 
       const dataSourceId = database.data_sources?.[0]?.id;
       if (!dataSourceId) {
@@ -191,12 +206,14 @@ export class NotionAPI {
     let cursor: string | undefined = undefined;
 
     do {
-      // @ts-ignore - SDK 5.x uses dataSources.query
-      const response = await this.officialClient.dataSources.query({
-        ...params,
-        start_cursor: cursor,
-        page_size: 100,
-      });
+      const response = await this.official('Querying data source pages', () =>
+        // @ts-ignore - SDK 5.x uses dataSources.query
+        this.officialClient.dataSources.query({
+          ...params,
+          start_cursor: cursor,
+          page_size: 100,
+        })
+      );
 
       results.push(...(response.results as NotionPage[]));
 
@@ -250,7 +267,7 @@ export class NotionAPI {
         sorts: [{ property: 'date', direction: 'ascending' }],
       });
     } catch (error) {
-      console.error('[NotionAPI] Error querying menu items:', error);
+      handleContentFailure('menu items query', {}, error);
       return [];
     }
   }
@@ -295,12 +312,14 @@ export class NotionAPI {
       let hasMore = false;
 
       do {
-        // @ts-ignore - SDK 5.x uses dataSources.query
-        const response = await this.officialClient.dataSources.query({
-          data_source_id: dataSourceId,
-          start_cursor: cursor,
-          page_size: Math.min(100, limit - results.length),
-        });
+        const response = await this.official(`Querying database rows ${databaseId}`, () =>
+          // @ts-ignore - SDK 5.x uses dataSources.query
+          this.officialClient.dataSources.query({
+            data_source_id: dataSourceId,
+            start_cursor: cursor,
+            page_size: Math.min(100, limit - results.length),
+          })
+        );
 
         results.push(...(response.results as NotionPage[]));
 
@@ -320,9 +339,11 @@ export class NotionAPI {
    */
   async retrieveDatabase(databaseId: string): Promise<any> {
     try {
-      return await this.officialClient.databases.retrieve({
-        database_id: databaseId,
-      });
+      return await this.official(`Retrieving database ${databaseId}`, () =>
+        this.officialClient.databases.retrieve({
+          database_id: databaseId,
+        })
+      );
     } catch (error) {
       console.error(`[NotionAPI] Failed to retrieve database ${databaseId}:`, error);
       throw error;
@@ -336,7 +357,9 @@ export class NotionAPI {
    */
   async getPage(pageId: string): Promise<NotionPage> {
     try {
-      const response = await this.officialClient.pages.retrieve({ page_id: pageId });
+      const response = await this.official(`Fetching page ${pageId}`, () =>
+        this.officialClient.pages.retrieve({ page_id: pageId })
+      );
       return response as NotionPage;
     } catch (error) {
       console.error(`[NotionAPI] Error fetching page ${pageId}:`, error);
@@ -353,11 +376,13 @@ export class NotionAPI {
       let cursor: string | undefined = undefined;
 
       while (true) {
-        const response = await this.officialClient.blocks.children.list({
-          block_id: pageId,
-          start_cursor: cursor,
-          page_size: 100,
-        });
+        const response = await this.official(`Fetching blocks for page ${pageId}`, () =>
+          this.officialClient.blocks.children.list({
+            block_id: pageId,
+            start_cursor: cursor,
+            page_size: 100,
+          })
+        );
 
         blocks.push(...(response.results as NotionBlock[]));
 
@@ -384,11 +409,13 @@ export class NotionAPI {
       let cursor: string | undefined = undefined;
 
       while (true) {
-        const response = await this.officialClient.blocks.children.list({
-          block_id: blockId,
-          start_cursor: cursor,
-          page_size: 100,
-        });
+        const response = await this.official(`Fetching child blocks for ${blockId}`, () =>
+          this.officialClient.blocks.children.list({
+            block_id: blockId,
+            start_cursor: cursor,
+            page_size: 100,
+          })
+        );
 
         blocks.push(...(response.results as NotionBlock[]));
 
@@ -401,7 +428,7 @@ export class NotionAPI {
 
       return blocks;
     } catch (error) {
-      console.error(`[NotionAPI] Error fetching child blocks for ${blockId}:`, error);
+      handleContentFailure('child blocks fetch', { blockId }, error);
       return [];
     }
   }
@@ -539,7 +566,7 @@ export class NotionAPI {
             }
           }
         } catch (error) {
-          console.warn(`[NotionAPI] Failed to complete record map:`, error);
+          handleContentFailure('record map completion', { blockId: batch[0] }, error);
           return;
         }
       }
@@ -605,6 +632,8 @@ export class NotionAPI {
             }
           });
         } catch (error) {
+          // Notion getSignedFileUrls 对部分文件稳定返回 500（API 缺陷，非内容缺失），
+          // 且签名 URL 构建后本就过期；单片失败只丢该片签名，保留 fallback 链接
           console.warn(`[NotionAPI] Failed to sign file urls chunk ${offset}:`, error);
         }
       })

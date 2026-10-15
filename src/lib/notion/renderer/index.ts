@@ -7,6 +7,7 @@ import type { RenderOptions } from './types';
 import { NotionBlockRenderer } from './block-renderer';
 import { createDatabaseRenderer } from '../database';
 import { notionAPI } from '../api';
+import { ContentRenderError } from '../../utils/failure';
 
 /**
  * 完整的 Notion 页面渲染器
@@ -48,8 +49,10 @@ export class NotionPageRenderer {
     try {
       await notionAPI.getPageData(pageId);
     } catch (error) {
+      // 内容类失败（严失败策略）向上抛，交给 service 的重试/失败处理；
+      // 仅格式信息缺失可继续渲染（无样式）
+      if (error instanceof ContentRenderError) throw error;
       console.warn(`[NotionRenderer] Failed to fetch format data:`, error);
-      // 格式获取失败，继续渲染（不带样式）
     }
 
     // 获取页面块
@@ -60,7 +63,7 @@ export class NotionPageRenderer {
     }
 
     // 渲染为 HTML
-    return await this.blockRenderer.renderBlocks(blocks);
+    return await this.blockRenderer.renderBlocks(blocks, { listDepth: 0, inList: false, pageId });
   }
 
   /**

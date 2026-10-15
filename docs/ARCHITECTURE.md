@@ -106,6 +106,7 @@ LayoutRenderer (渲染层)
 
 - **RateLimiter** — 并发控制。官方 API `notionRateLimiter`（5 并发, 50ms 最小间隔）；非官方 API `notionUnofficialRateLimiter`（2 并发, 350ms 间隔）
 - **RetryHelper** — 自动重试临时性错误（网络错误、5xx、429），权限错误（401/403）直接抛出。官方 API 最多重试 3 次，指数退避 1s → 2s → 4s；非官方 API 最多重试 3 次，指数退避 2s → 4s → 8s。延迟上限均为 30s。RetryHelper 包在 RateLimiter 外层（retry → limiter），退避等待期间释放并发槽位
+- **调用接入** — 官方 SDK 调用统一经 `NotionAPI.official(label, fn)`（组合为 `retry(limiter(fn))`），非官方调用经 `fetchBlocksGuarded` 等专用 helper；限流与重试都收敛在调用层，`renderPage` 不再有外层重试
 
 ### 7. 文件 URL 统一解析（`src/lib/notion/file-url.ts`）
 
@@ -161,6 +162,12 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 优先级：环境变量 > `.env` > 代码默认值（经 vite `loadEnv` 读取）。命名规范：`SITE_*`、`COMMENTS_GISCUS_*`。`SITE_TITLE` / `SITE_DESCRIPTION` / `SITE_ICON` 留空时自动回填 Notion Database 元数据（`resolved-site.ts`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点链接。完整变量表见 [CONFIGURATION.md](./CONFIGURATION.md)。
 
+### 12. 内容失败策略（`src/lib/utils/failure.ts`）
+
+默认严失败（`NOPRESS_STRICT=true`）：站点内容在重试耗尽后仍失败时抛出 `ContentRenderError` 中断构建，避免残缺页面静默发布；`NOPRESS_STRICT=false` 降级为告警 + 回退。约束范围是**站点内容**——正文子块、同步块、record map 补齐、菜单查询、无效 slug。重试下沉到 API 调用层（官方 SDK 经 `official()`，见 §6；非官方经 `fetchBlocksGuarded` / `notionUnofficialRetryHelper`），因此 `handleContentFailure` 总是在对应调用重试耗尽后才触发；`block-renderer.ts` 为每个块的渲染失败补上 `pageId`/`blockId`/`blockType` 上下文后重新抛出，`renderer/index.ts` 对内容类失败不再吞错（仅格式信息缺失可继续渲染）。
+
+以下情况**始终降级**，不受开关影响：链接预览（OG/oEmbed）等第三方装饰抓取（其抖动不应炸整站）；`child_database` 权限不足时的占位渲染；PDF/附件签名失败（Notion `getSignedFileUrls` 对部分文件稳定返回 500 属 API 缺陷，且签名 URL 构建后本就过期，`§7` 的 fallback 链接可用）。
+
 ## 文件结构
 
 ```
@@ -189,7 +196,7 @@ src/
 │   ├── search/                   # 全文搜索：documents、endpoint（/search-docs.json）、client（无头客户端）、integration
 │   ├── theme/                    # 主题系统：manager、loader、schema、astro-integration
 │   ├── config/loader.ts          # 环境变量配置加载
-│   └── utils/                    # api-helpers（限流/重试）、slug、date、format、version（构建 commit id）
+│   └── utils/                    # api-helpers（限流/重试）、failure（失败策略）、slug、date、format、version（构建 commit id）
 ├── config/                       # site.ts 默认值 + resolved-site.ts（回填 Database 元数据）
 ├── core/                         # meta-helpers（<head> 生成）
 └── scripts/                      # 客户端脚本：TOC、代码高亮、KaTeX、mermaid、灯箱、giscus

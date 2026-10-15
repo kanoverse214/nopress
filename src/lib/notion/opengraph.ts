@@ -61,6 +61,18 @@ const ogRetry = new RetryHelper({
 });
 
 /**
+ * 归一化并限制为 http/https，挡掉 javascript:/data: 等被注入 <img src> 的 scheme
+ */
+function toHttpUrl(raw: string, baseUrl: string): string {
+  try {
+    const url = new URL(raw, baseUrl);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
  * 从 HTML 中严格提取站点显式声明的预览图（og:image / twitter:image）。
  * 相对路径会基于最终 URL（跟随重定向后）解析为绝对地址。
  */
@@ -79,11 +91,8 @@ function extractPreviewImage(html: string, baseUrl: string): string {
   for (const key of PREVIEW_IMAGE_KEYS) {
     const raw = candidates.get(key);
     if (!raw) continue;
-    try {
-      return new URL(raw, baseUrl).toString();
-    } catch {
-      // 非法 URL，尝试下一个候选
-    }
+    const resolved = toHttpUrl(raw, baseUrl);
+    if (resolved) return resolved;
   }
   return '';
 }
@@ -116,11 +125,8 @@ function extractFavicon(html: string, baseUrl: string): string {
   for (const rel of FAVICON_RELS) {
     const href = links.get(rel);
     if (!href) continue;
-    try {
-      return new URL(href, baseUrl).toString();
-    } catch {
-      // 非法 URL，尝试下一个候选
-    }
+    const resolved = toHttpUrl(href, baseUrl);
+    if (resolved) return resolved;
   }
   return '';
 }
@@ -187,12 +193,14 @@ export async function fetchOpenGraphData(
     );
 
     const { data, html, baseUrl } = fetched;
+    // metascraper-logo 可能返回相对路径，统一按最终 URL 解析并限制 scheme
+    const logo = toHttpUrl(data.logo || '', baseUrl);
     const ogData: OpenGraphData = {
       title: data.title || '',
       description: data.description || '',
       image: extractPreviewImage(html, baseUrl),
       url: data.url || url,
-      logo: data.logo || extractFavicon(html, baseUrl),
+      logo: logo || extractFavicon(html, baseUrl),
       author: data.author || '',
       publisher: data.publisher || '',
       date: data.date || '',
