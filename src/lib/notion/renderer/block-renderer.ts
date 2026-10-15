@@ -31,6 +31,7 @@ const SRCSET_DPR_HEADROOM = 2;
 const oembedRetry = new RetryHelper({
   maxRetries: 1,
   initialDelay: 500,
+  quiet: true,
   shouldRetry: (error: Error) =>
     /timeout|aborted/i.test(error.message) ||
     /fetch failed|ECONNRESET|network/i.test(error.message) ||
@@ -798,7 +799,8 @@ export class NotionBlockRenderer {
         ${caption ? `<figcaption>${caption}</figcaption>` : ''}
       </figure>`;
     } catch (error) {
-      console.warn('[Embed] Twitter oEmbed failed:', error);
+      // 外部嵌入失败是预期内的降级路径，只留一行摘要，不打印堆栈
+      console.warn(`[Embed] Twitter oEmbed failed: ${error instanceof Error ? error.message : error}`);
       // 降级：显示链接卡片
       return `<figure class="notion-embed notion-embed--fallback">
         <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="notion-embed-fallback-link">

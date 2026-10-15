@@ -30,8 +30,6 @@ export interface Database {
   id: string;
   title: string;
   description?: string;
-  icon?: string;
-  cover?: string;
   createdAt: string;
   updatedAt: string;
 }

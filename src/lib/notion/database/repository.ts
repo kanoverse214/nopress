@@ -57,8 +57,6 @@ export class DatabaseRepository implements IDatabaseRepository {
       id: response.id,
       title: this.extractTitle(response.title),
       description: this.extractDescription(response.description),
-      icon: this.extractIcon(response.icon),
-      cover: this.extractCover(response.cover),
       createdAt: response.created_time,
       updatedAt: response.last_edited_time,
     };
@@ -327,26 +325,6 @@ export class DatabaseRepository implements IDatabaseRepository {
   private extractDescription(descArray: any[]): string {
     if (!descArray || descArray.length === 0) return '';
     return descArray.map((d: any) => d.plain_text || '').join('') || '';
-  }
-
-  /**
-   * 提取图标
-   */
-  private extractIcon(icon: any): string | undefined {
-    if (!icon) return undefined;
-    if (icon.type === 'emoji') return icon.emoji;
-    if (icon.type === 'external') return icon.external.url;
-    return undefined;
-  }
-
-  /**
-   * 提取封面
-   */
-  private extractCover(cover: any): string | undefined {
-    if (!cover) return undefined;
-    if (cover.type === 'external') return cover.external.url;
-    if (cover.type === 'file') return cover.file?.url;
-    return undefined;
   }
 
   /**

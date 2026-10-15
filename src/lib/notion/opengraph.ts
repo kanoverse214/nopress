@@ -53,6 +53,7 @@ const PREVIEW_IMAGE_KEYS = [
 const ogRetry = new RetryHelper({
   maxRetries: 1,
   initialDelay: 500,
+  quiet: true,
   shouldRetry: (error: Error) =>
     /timeout|aborted/i.test(error.message) ||
     /fetch failed|ECONNRESET|network/i.test(error.message) ||
@@ -212,7 +213,8 @@ export async function fetchOpenGraphData(
 
     return ogData;
   } catch (error) {
-    console.warn(`[OpenGraph] Failed to fetch ${url}:`, error);
+    // 外部抓取失败是预期内的降级路径，只留一行摘要，不打印堆栈
+    console.warn(`[OpenGraph] Failed to fetch ${url}: ${error instanceof Error ? error.message : error}`);
     // 失败仅记入内存缓存，下次构建重试
     cache.set(url, null);
     return null;

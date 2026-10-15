@@ -63,6 +63,8 @@ export interface RetryConfig {
   maxDelay?: number;
   /** 是否应该重试的判断函数 */
   shouldRetry?: (error: Error) => boolean;
+  /** 静默模式：不打印每次尝试/最终失败的日志（用于第三方装饰抓取等预期内失败） */
+  quiet?: boolean;
 }
 
 /**
@@ -82,6 +84,7 @@ export class RetryHelper {
       backoffMultiplier: config.backoffMultiplier ?? 2,
       maxDelay: config.maxDelay ?? 30000,
       shouldRetry: config.shouldRetry ?? this.defaultShouldRetry,
+      quiet: config.quiet ?? false,
     };
   }
 
@@ -149,10 +152,12 @@ export class RetryHelper {
           delay = Math.max(extractRetryAfterMs(lastError) ?? 0, delay * 2, 2000);
         }
 
-        console.warn(
-          `[Retry] Attempt ${attempt}/${this.config.maxRetries} failed${context ? ` (${context})` : ''}: ${lastError.message}`
-        );
-        console.warn(`[Retry] Waiting ${delay}ms before retry...`);
+        if (!this.config.quiet) {
+          console.warn(
+            `[Retry] Attempt ${attempt}/${this.config.maxRetries} failed${context ? ` (${context})` : ''}: ${lastError.message}`
+          );
+          console.warn(`[Retry] Waiting ${delay}ms before retry...`);
+        }
 
         // 等待后重试
         await this.sleep(delay);
@@ -160,9 +165,11 @@ export class RetryHelper {
     }
 
     // 所有重试都失败
-    console.error(
-      `[Retry] All ${this.config.maxRetries} retries failed${context ? ` (${context})` : ''}: ${lastError!.message}`
-    );
+    if (!this.config.quiet) {
+      console.error(
+        `[Retry] All ${this.config.maxRetries} retries failed${context ? ` (${context})` : ''}: ${lastError!.message}`
+      );
+    }
     throw lastError!;
   }
 

@@ -400,39 +400,6 @@ export class NotionAPI {
     }
   }
 
-  /**
-   * 获取子块（用于嵌套块）
-   */
-  async getChildBlocks(blockId: string): Promise<NotionBlock[]> {
-    try {
-      const blocks: NotionBlock[] = [];
-      let cursor: string | undefined = undefined;
-
-      while (true) {
-        const response = await this.official(`Fetching child blocks for ${blockId}`, () =>
-          this.officialClient.blocks.children.list({
-            block_id: blockId,
-            start_cursor: cursor,
-            page_size: 100,
-          })
-        );
-
-        blocks.push(...(response.results as NotionBlock[]));
-
-        if (!response.has_more || !response.next_cursor) {
-          break;
-        }
-
-        cursor = response.next_cursor;
-      }
-
-      return blocks;
-    } catch (error) {
-      handleContentFailure('child blocks fetch', { blockId }, error);
-      return [];
-    }
-  }
-
   // ============== 非官方 API + 缓存 ==============
 
   /**
