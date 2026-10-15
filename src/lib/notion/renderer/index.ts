@@ -7,7 +7,7 @@ import type { RenderOptions } from './types';
 import { NotionBlockRenderer } from './block-renderer';
 import { createDatabaseRenderer } from '../database';
 import { notionAPI } from '../api';
-import { ContentRenderError } from '../../utils/failure';
+import { ContentRenderError, handleContentFailure } from '../../utils/failure';
 
 /**
  * 完整的 Notion 页面渲染器
@@ -87,7 +87,7 @@ export class NotionPageRenderer {
 
       return await this.databaseRenderer.render(block, viewConfig.type, viewConfig);
     } catch (error) {
-      console.warn(`[NotionRenderer] Failed to render child database:`, error);
+      handleContentFailure('child database render', { blockId: block.id, blockType: 'child_database' }, error);
       return `<div class="notion-child-database-error">
         <p>⚠️ 无法加载数据库内容</p>
       </div>`;
@@ -103,7 +103,7 @@ export class NotionPageRenderer {
       const newFormat = notionAPI.getBlockFormat(blockId);
       return this.extractViewConfig(newFormat);
     } catch (error) {
-      console.warn(`[NotionRenderer] Failed to fetch view config for ${blockId}:`, error);
+      handleContentFailure('child database view config', { blockId, blockType: 'child_database' }, error);
       return { type: 'table' };
     }
   }

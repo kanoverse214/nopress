@@ -164,9 +164,9 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 ### 12. 内容失败策略（`src/lib/utils/failure.ts`）
 
-默认严失败（`NOPRESS_STRICT=true`）：站点内容在重试耗尽后仍失败时抛出 `ContentRenderError` 中断构建，避免残缺页面静默发布；`NOPRESS_STRICT=false` 降级为告警 + 回退。约束范围是**站点内容**——正文子块、同步块、record map 补齐、菜单查询、无效 slug。重试下沉到 API 调用层（官方 SDK 经 `official()`，见 §6；非官方经 `fetchBlocksGuarded` / `notionUnofficialRetryHelper`），因此 `handleContentFailure` 总是在对应调用重试耗尽后才触发；`block-renderer.ts` 为每个块的渲染失败补上 `pageId`/`blockId`/`blockType` 上下文后重新抛出，`renderer/index.ts` 对内容类失败不再吞错（仅格式信息缺失可继续渲染）。
+默认严失败（`NOPRESS_STRICT=true`）：站点内容在重试耗尽后仍失败时抛出 `ContentRenderError` 中断构建，避免残缺页面静默发布；`NOPRESS_STRICT=false` 降级为告警 + 回退。约束范围是**站点内容**——正文子块、同步块、record map 补齐、菜单查询、无效 slug、`child_database` 的查询与视图配置失败。重试下沉到 API 调用层（官方 SDK 经 `official()`，见 §6；非官方经 `fetchBlocksGuarded` / `notionUnofficialRetryHelper`），因此 `handleContentFailure` 总是在对应调用重试耗尽后才触发；`block-renderer.ts` 为每个块的渲染失败补上 `pageId`/`blockId`/`blockType` 上下文后重新抛出，`renderer/index.ts` 对内容类失败不再吞错（仅格式信息缺失可继续渲染）。
 
-以下情况**始终降级**，不受开关影响：链接预览（OG/oEmbed）等第三方装饰抓取（其抖动不应炸整站）；`child_database` 权限不足时的占位渲染；PDF/附件签名失败（Notion `getSignedFileUrls` 对部分文件稳定返回 500 属 API 缺陷，且签名 URL 构建后本就过期，`§7` 的 fallback 链接可用）。
+以下情况**始终降级**，不受开关影响：链接预览（OG/oEmbed）等第三方装饰抓取（其抖动不应炸整站）；`child_database` 权限/请求错误（`forbidden`/`object_not_found`/`validation_error` 等，嵌入的数据库可能本就不对集成开放）的占位渲染；PDF/附件签名失败（Notion `getSignedFileUrls` 对部分文件稳定返回 500 属 API 缺陷，且签名 URL 构建后本就过期，`§7` 的 fallback 链接可用）。
 
 ## 文件结构
 

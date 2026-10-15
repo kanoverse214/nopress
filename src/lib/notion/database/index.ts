@@ -7,6 +7,7 @@ import type { BlockObjectResponse } from '@notionhq/client';
 import { createDatabaseRepository } from './repository';
 import { TableLayoutRenderer } from './table-layout';
 import { GalleryLayoutRenderer } from './gallery-layout';
+import { handleContentFailure } from '../../utils/failure';
 import type {
   DatabaseRenderContext,
   DatabaseRenderOptions,
@@ -77,11 +78,14 @@ export class DatabaseRenderer {
       const isApiError = error?.code === 'validation_error' ||
                         error?.code === 'invalid_request';
 
+      // 权限/请求错误：嵌入的数据库可能本就不对集成开放，始终降级为提示 UI
       if (isAuthError || isApiError) {
         return this.renderFallback(block);
       }
 
-      console.error(`[DatabaseRenderer] Failed to render database ${databaseId}:`, error);
+      // 其他失败（重试后仍失败）意味着数据库内容缺失，交给失败策略：
+      // 严失败模式抛错，宽松模式保留错误占位
+      handleContentFailure('child database query', { blockId: databaseId, blockType: 'child_database' }, error);
       return this.renderError(error);
     }
   }
