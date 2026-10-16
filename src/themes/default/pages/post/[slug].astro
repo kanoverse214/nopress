@@ -9,11 +9,7 @@ import Comments from '../../components/Comments.astro';
 import '../../styles/notion.css';
 
 export async function getStaticPaths() {
-  console.log('[getStaticPaths] Function called');
-
   const posts = await dataService.getAllPosts();
-
-  console.log(`[getStaticPaths] Total posts: ${posts.length}`);
 
   // 检查并过滤无效的 slug
   const invalidPosts = posts.filter(post => !isValidSlug(post.slug));
@@ -35,8 +31,6 @@ export async function getStaticPaths() {
         props: { post, prevPost, nextPost },
       };
     });
-
-  console.log(`[getStaticPaths] Generated ${paths.length} valid paths (filtered out ${posts.length - paths.length} invalid)`);
 
   return paths;
 }

@@ -33,8 +33,6 @@ export async function getStaticPaths() {
     };
   }).filter((path): path is Exclude<typeof path, null> => path !== null);
 
-  console.log(`[getStaticPaths] Generated ${paths.length} pagination pages (total pages: ${totalPages})`);
-
   return paths;
 }
 

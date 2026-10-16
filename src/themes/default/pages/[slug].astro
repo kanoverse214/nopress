@@ -9,8 +9,6 @@ import '../styles/notion.css';
 export async function getStaticPaths() {
   const pages = await dataService.getAllPages();
 
-  console.log(`[getStaticPaths] Total pages: ${pages.length}`);
-
   // 检查并过滤无效的 slug
   const invalidPages = pages.filter(page => !isValidSlug(page.slug));
   if (invalidPages.length > 0) {
@@ -25,8 +23,6 @@ export async function getStaticPaths() {
       params: { slug: page.slug },
       props: { page },
     }));
-
-  console.log(`[getStaticPaths] Generated ${paths.length} valid page paths (filtered out ${pages.length - paths.length} invalid)`);
 
   return paths;
 }
