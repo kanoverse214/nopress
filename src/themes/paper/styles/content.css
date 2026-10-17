@@ -540,22 +540,57 @@ html.dark .token.variable {
   color: #e9b96b;
 }
 
-/* Mermaid：图表是浅色主题，深色模式反相 */
+/* Mermaid（Pele 渲染）：配色映射到纸本变量，夜读模式自动适配 */
 .notion-content .mermaid-diagram {
   margin: 1.8em 0;
   padding: 1.2em;
   border: 1px solid var(--rule);
   overflow-x: auto;
   text-align: center;
+
+  /* --pele-bg 须为真实底色：pele 用它作填充块上反白文字的颜色（如 gitGraph 分支名） */
+  --pele-bg: var(--paper);
+  --pele-fg: var(--ink);
+  --pele-muted: var(--ink-faint);
+  --pele-line: var(--ink);
+  --pele-surface: var(--paper-raised);
+  /* 子图填充被 pele 以 0.5 透明度绘制，保持比节点更浅的色阶 */
+  --pele-surface-alt: #ffffff;
+  --pele-border: var(--rule-strong);
+  --pele-accent: var(--accent);
+  --pele-error: var(--accent);
+  /* 分类色板（pele 默认值）：饼图扇区、git 分支共用，改这里全站生效 */
+  --pele-series-1: #4c78a8;
+  --pele-series-2: #f58518;
+  --pele-series-3: #54a24b;
+  --pele-series-4: #e45756;
+  --pele-series-5: #72b7b2;
+  --pele-series-6: #eeca3b;
+  --pele-series-7: #b279a2;
+  --pele-series-8: #9d755d;
+  --pele-radius: 0; /* 方形节点直角，贴近 Mermaid 观感 */
+  --pele-font: var(--font-serif);
+  --pele-font-mono: var(--font-mono);
 }
 
-.notion-content .mermaid svg {
-  max-width: 100%;
-  height: auto;
+/* 夜读下「更浅」方向相反，单独给出子图色 */
+html.dark .notion-content .mermaid-diagram {
+  --pele-surface-alt: #4a453c;
 }
 
-html.dark .notion-content .mermaid svg {
-  filter: invert(0.88) hue-rotate(180deg);
+/* 象限图：pele 原生四象限同一填充，主题按 data-id 顺序（1→4）给深到浅的暖灰色阶 */
+.notion-content .pele-quadrant[data-id='1'] rect { fill: #ece6d8; }
+.notion-content .pele-quadrant[data-id='2'] rect { fill: #f2ede0; }
+.notion-content .pele-quadrant[data-id='3'] rect { fill: #f7f3ea; }
+.notion-content .pele-quadrant[data-id='4'] rect { fill: #fcf9f3; }
+html.dark .notion-content .pele-quadrant[data-id='1'] rect { fill: #403c34; }
+html.dark .notion-content .pele-quadrant[data-id='2'] rect { fill: #49453c; }
+html.dark .notion-content .pele-quadrant[data-id='3'] rect { fill: #514d42; }
+html.dark .notion-content .pele-quadrant[data-id='4'] rect { fill: #59554a; }
+
+/* 象限数据点：改用墨色，跟随主题深浅 */
+.notion-content .pele-point {
+  fill: var(--ink);
 }
 
 /* ===== 公式（KaTeX 核心样式由脚本注入） ===== */

@@ -711,7 +711,7 @@ code.notion-equation .katex {
   color: var(--notion-text-primary);
 }
 
-/* ========== Mermaid 图表 ========== */
+/* ========== Mermaid 图表（Pele 渲染） ========== */
 
 .mermaid-diagram {
   padding: var(--spacing-xl);
@@ -719,65 +719,52 @@ code.notion-equation .katex {
   border-radius: var(--radius-md);
   overflow-x: auto;
   text-align: center;
+
+  /* Pele 配色映射：切换深浅色无需重渲染 */
+  --pele-bg: #ffffff; /* 须为真实底色：pele 用它作填充块上反白文字的颜色（如 gitGraph 分支名） */
+  --pele-fg: var(--notion-text-primary);
+  --pele-muted: var(--notion-text-tertiary);
+  --pele-line: var(--notion-text-primary);
+  --pele-surface: #f1f0ec;
+  /* 子图填充会被 pele 以 0.5 透明度绘制，保持比节点更浅的色阶 */
+  --pele-surface-alt: #ffffff;
+  --pele-border: #b7b5ac;
+  --pele-accent: var(--notion-link);
+  --pele-error: var(--notion-code-text);
+  /* 分类色板（pele 默认值）：饼图扇区、git 分支共用，改这里全站生效 */
+  --pele-series-1: #4c78a8;
+  --pele-series-2: #f58518;
+  --pele-series-3: #54a24b;
+  --pele-series-4: #e45756;
+  --pele-series-5: #72b7b2;
+  --pele-series-6: #eeca3b;
+  --pele-series-7: #b279a2;
+  --pele-series-8: #9d755d;
+  --pele-radius: 0; /* 方形节点直角，贴近 Mermaid 观感 */
+  --pele-font: var(--font-sans);
+  --pele-font-mono: var(--font-mono);
 }
 
-.mermaid-diagram .mermaid {
-  display: inline-block;
-  width: 100%;
-  min-width: 600px;
-  font-family: var(--font-sans);
-  font-size: 1rem;
-}
-
-/* Mermaid SVG 样式调整 */
-.mermaid svg {
-  width: 100%;
-  min-width: 600px;
-  height: auto;
-  font-family: var(--font-sans);
-  font-size: 16px;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .mermaid-diagram .mermaid {
-    min-width: 100%;
-  }
-
-  .mermaid svg {
-    min-width: 100%;
-  }
-}
-
-/* Mermaid 文本元素 */
-.mermaid .nodeLabel,
-.mermaid .edgeLabel,
-.mermaid .labelText,
-.mermaid .messageText,
-.mermaid text {
-  font-family: var(--font-sans) !important;
-  font-size: 14px !important;
-  fill: var(--notion-text-primary);
-}
-
-/* Mermaid 错误样式 */
-.mermaid-diagram .error {
-  color: #cc0000;
-  font-size: 0.875rem;
-  text-align: left;
-}
-
-/* 深色模式下的 Mermaid */
 :root.dark .mermaid-diagram {
-  background-color: var(--notion-bg-secondary);
+  --pele-bg: #2f2f2f;
+  --pele-surface: #3d3d3d;
+  --pele-surface-alt: #666666;
+  --pele-border: #5c5c5c;
 }
 
-:root.dark .mermaid .nodeLabel,
-:root.dark .mermaid .edgeLabel,
-:root.dark .mermaid .labelText,
-:root.dark .mermaid .messageText,
-:root.dark .mermaid text {
-  fill: var(--notion-text-primary) !important;
+/* 象限图：pele 原生四象限同一填充，主题按 data-id 顺序（1→4）给深到浅的灰色阶 */
+.mermaid-diagram .pele-quadrant[data-id='1'] rect { fill: #e5e5e2; }
+.mermaid-diagram .pele-quadrant[data-id='2'] rect { fill: #ecece9; }
+.mermaid-diagram .pele-quadrant[data-id='3'] rect { fill: #f2f2ef; }
+.mermaid-diagram .pele-quadrant[data-id='4'] rect { fill: #f8f8f6; }
+:root.dark .mermaid-diagram .pele-quadrant[data-id='1'] rect { fill: #555555; }
+:root.dark .mermaid-diagram .pele-quadrant[data-id='2'] rect { fill: #5f5f5f; }
+:root.dark .mermaid-diagram .pele-quadrant[data-id='3'] rect { fill: #696969; }
+:root.dark .mermaid-diagram .pele-quadrant[data-id='4'] rect { fill: #737373; }
+
+/* 象限数据点：改用墨色，跟随主题深浅 */
+.mermaid-diagram .pele-point {
+  fill: var(--notion-text-primary);
 }
 
 /* ========== 列表 ========== */

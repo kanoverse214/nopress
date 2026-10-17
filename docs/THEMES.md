@@ -256,7 +256,7 @@ import { ClientRouter } from 'astro:transitions';
 | `syntax-highlight` | Prism 按语言按需高亮 | `.notion-code > code[class*="language-"]` | **主题**负责 `.token.*` 配色 |
 | `code-copy` | 代码块复制按钮 | 渲染器自带的 `.notion-code-copy` | 主题负责按钮外观（`.copied` 态） |
 | `math-rendering` | KaTeX 渲染行内/块级公式 | `code.notion-equation`、`.notion-equation-block .notion-equation` | 脚本注入 KaTeX 核心样式；主题可覆盖布局 |
-| `mermaid-rendering` | Mermaid 图表渲染 | `pre code.language-mermaid` | 主题可设 `.mermaid` 容器尺寸 |
+| `mermaid-rendering` | Mermaid 图表渲染（Pele，按图类型懒加载） | `pre code.language-mermaid` | 主题可设 `.mermaid` 容器尺寸；配色经 `--pele-*` CSS 变量映射（深浅色随主题自动切换，无需重渲染） |
 | `image-gallery` | PhotoSwipe 灯箱 | 渲染器自带的 `.glightbox[data-gallery="article-images"]` | 脚本注入 PhotoSwipe CSS |
 | `table-of-contents` | 自动目录 + 滚动高亮 | **主题提供** `.toc-container` 容器 + 内容容器 `.notion-content`（h1-h3） | 主题负责目录样式（`.toc-item` / `.toc-active` 等） |
 | `comments/giscus` | giscus 评论 | 见 §7 | 主题负责容器样式 |

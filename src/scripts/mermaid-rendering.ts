@@ -1,121 +1,40 @@
 /**
- * Mermaid 图表渲染脚本
- * 用于渲染流程图、序列图、甘特图等
- * 异步加载，避免阻塞首屏渲染
+ * Mermaid 图表渲染脚本（Pele 渲染器）
+ * 识别 `pre code.language-mermaid` 代码块，替换为 Pele 渲染的 SVG。
+ * 经 pele/lazy 按用到的图类型懒加载；深浅色配色由主题的 --pele-* CSS 变量控制，切换无需重渲染。
  */
 
-let mermaid: any = null;
+import type { Mounted } from 'pele';
+
+let mounted: Mounted[] = [];
 
 /**
- * 动态加载 Mermaid
+ * 将页面上的 mermaid 代码块替换为图表容器并渲染
  */
-async function loadMermaid() {
-  if (mermaid) return mermaid;
+async function renderMermaidDiagrams(blocks: NodeListOf<Element>) {
+  const { mountAsync } = await import('pele/lazy');
 
-  const mermaidModule = await import('mermaid');
-  mermaid = mermaidModule.default;
-
-  return mermaid;
-}
-
-/**
- * 初始化 Mermaid 配置
- */
-async function initMermaidConfig() {
-  const mermaidLib = await loadMermaid();
-
-  mermaidLib.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'loose',
-    fontFamily: 'inherit',
-    logLevel: 'error',
-    // 主题配置
-    themeVariables: {},
-    // 流程图配置 - 增加缩放比例
-    flowchart: {
-      useMaxWidth: true,
-      htmlLabels: true,
-      curve: 'basis',
-      padding: 20,
-    },
-    // 序列图配置
-    sequence: {
-      useMaxWidth: true,
-      messageMargin: 60,
-      boxMargin: 10,
-    },
-    // 甘特图配置
-    gantt: {
-      useMaxWidth: true,
-      fontSize: 14,
-    },
-    // 类图配置
-    class: {
-      useMaxWidth: true,
-    },
-    // 状态图配置
-    state: {
-      useMaxWidth: true,
-    },
-    // 实体关系图配置
-    er: {
-      useMaxWidth: true,
-    },
-    // Git 图配置
-    gitGraph: {
-      useMaxWidth: true,
-      showBranches: true,
-      showCommitLabel: true,
-      mainBranchName: 'main',
-      rotateCommitLabel: true,
-    },
-  });
-}
-
-/**
- * 渲染所有 Mermaid 图表
- */
-async function renderMermaidDiagrams() {
-  const mermaidLib = await loadMermaid();
-
-  // 查找所有 mermaid 代码块
-  const mermaidBlocks = document.querySelectorAll('pre code.language-mermaid');
-
-  if (mermaidBlocks.length === 0) return;
-
-  // 为每个代码块创建渲染容器
-  mermaidBlocks.forEach((codeBlock, index) => {
+  for (const codeBlock of blocks) {
     const pre = codeBlock.parentElement;
-    if (!pre) return;
+    if (!pre) continue;
 
-    // 获取 mermaid 代码
     const code = codeBlock.textContent || '';
 
-    // 创建渲染容器
     const container = document.createElement('div');
     container.className = 'mermaid-diagram';
-    container.setAttribute('data-processed', 'false');
 
-    // 创建一个带有唯一 ID 的 div
-    const mermaidDiv = document.createElement('div');
-    mermaidDiv.className = 'mermaid';
-    mermaidDiv.textContent = code;
-    mermaidDiv.id = `mermaid-${index}-${Date.now()}`;
+    const target = document.createElement('div');
+    target.className = 'mermaid';
+    container.appendChild(target);
 
-    container.appendChild(mermaidDiv);
-
-    // 替换原始代码块
     pre.replaceWith(container);
-  });
 
-  // 渲染所有 mermaid 图表
-  try {
-    await mermaidLib.run({
-      querySelector: '.mermaid',
-    });
-  } catch (error) {
-    console.error('Mermaid render error:', error);
+    try {
+      mounted.push(await mountAsync(target, code));
+    } catch (error) {
+      // 语法错误由 Pele 直接显示在容器内，这里只兜底 chunk 加载等异常
+      console.error('Mermaid render error:', error);
+    }
   }
 }
 
@@ -123,12 +42,16 @@ async function renderMermaidDiagrams() {
  * 初始化 Mermaid 渲染
  */
 export async function initMermaidRendering() {
-  // 先检查页面是否存在 Mermaid 代码块，避免无图表页面加载 Mermaid（约 500KB）
-  if (document.querySelectorAll('pre code.language-mermaid').length === 0) return;
+  // 先检查页面是否存在 Mermaid 代码块，避免无图表页面加载渲染器 chunk
+  const mermaidBlocks = document.querySelectorAll('pre code.language-mermaid');
+  if (mermaidBlocks.length === 0) return;
 
-  await initMermaidConfig();
-  // 静态站点内容不会动态变化，无需 MutationObserver 监听后续添加的代码块
-  await renderMermaidDiagrams();
+  await renderMermaidDiagrams(mermaidBlocks);
+}
+
+function destroyMermaidDiagrams() {
+  for (const diagram of mounted) diagram.destroy();
+  mounted = [];
 }
 
 // astro:page-load 在首次加载与每次客户端导航后都会触发（依赖布局中的 <ClientRouter />）；
@@ -141,4 +64,7 @@ if (typeof window !== 'undefined') {
       setTimeout(() => initMermaidRendering(), 200);
     }
   });
+
+  // 软导航替换 DOM 前销毁实例，释放 mount() 的容器尺寸监听
+  document.addEventListener('astro:before-swap', destroyMermaidDiagrams);
 }
