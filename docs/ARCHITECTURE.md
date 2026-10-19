@@ -127,7 +127,9 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 | 文件 | owner |
 |------|-------|
 | 正文图片/视频、callout 图标、文章封面 | 所属 block，`table: 'block'` |
-| 数据库 icon/封面 | collection 记录，`table: 'collection'`，id 为 data source id（官方 API `database.data_sources[0].id`） |
+| 数据库 icon | collection 记录，`table: 'collection'`（recordMap 无 icon 时回退官方 API 的 `database.icon`） |
+| 数据库封面（`collection.cover`，旧版存储位置） | collection 记录，`table: 'collection'` |
+| 数据库封面（`format.page_cover`，现行存储位置） | 数据库页 block，`table: 'block'`；URL 取自官方 API 的文件 URL（`attachment:` 引用经代理无法访问） |
 
 例外：PDF/附件等非图片文件代理不支持，`block-renderer.ts` 的 `renderFile()` / `renderPdf()` 走 `getSignedUrl()`（非官方 API 的 `signed_urls` 缓存）。签名 URL 有时效（约数小时），构建后必然过期：`renderPdf()` 用 `<object>` 内嵌并保留原生 fallback 链接（失效时浏览器降级显示链接，不弹下载）；PDF/附件块的签名经 `signPageFileUrls()` 小批次获取——Notion 的 `getSignedFileUrls` 对大批次（≥3 个文件）会间歇性返回 500，整页一次批量调用必炸，分片（每批 2 个）并行获取 + RetryHelper，单片失败只丢失该片签名。
 

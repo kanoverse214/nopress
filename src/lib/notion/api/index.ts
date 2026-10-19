@@ -5,7 +5,7 @@
 
 import { Client } from '@notionhq/client';
 import { NotionAPI as NotionAPILib, type SignedUrlRequest } from 'notion-client';
-import { resolveIcon, resolveCover, type FileOwner } from '../file-url';
+import { resolveIcon, resolveCover } from '../file-url';
 import {
   RetryHelper,
   notionRateLimiter,
@@ -171,27 +171,74 @@ export class NotionAPI {
       const descArray = database.description || [];
       const description = descArray.map((d: any) => d.plain_text || '').join('') || '';
 
-      // 数据库 icon/cover 由官方 API 直接提供，代理归属恒为 collection 记录，
-      // 其 id 即 data source id；file 类型 URL 短期签名由 toProxyUrl 剥除。
-      const owner: FileOwner = { id: dataSourceId, table: 'collection' };
-      const coverUrl = resolveCover(database.cover, owner);
-      const icon = resolveIcon(database.icon, owner);
+      // 封面/图标经 notion.so/image 代理时按存储记录鉴权：external 直通；
+      // 旧版存于 collection 记录，现行存于数据库页面 block；file 类型
+      // URL 的短期签名由 toProxyUrl 剥除。
+      let coverUrl = '';
+      let icon = '';
+
+      if (database.cover?.type === 'external') {
+        coverUrl = resolveCover(database.cover, {
+          id: toDashedId(this.databaseId),
+          table: 'block',
+        });
+      }
 
       // 封面位置仅存于非官方 recordMap 的 format.page_cover_position，官方 API 不提供
       let coverPosition: number | undefined;
       try {
         const pageData = await this.getPageData(this.databaseId);
+        const collectionRecord = pageData.collection || {};
+        // 兼容原始格式（spaceId 包装的双层 value）和缓存重组格式（单层 value）
+        const collectionId = Object.keys(collectionRecord)[0];
+        const collectionValue = collectionId
+          ? collectionRecord[collectionId]?.value?.value ??
+            collectionRecord[collectionId]?.value
+          : null;
+
+        if (!coverUrl && collectionValue?.cover) {
+          coverUrl = resolveCover(collectionValue.cover, {
+            id: collectionId,
+            table: 'collection',
+          });
+        }
+
+        if (!icon && collectionValue?.icon) {
+          icon = resolveIcon(collectionValue.icon, {
+            id: collectionId,
+            table: 'collection',
+          });
+        }
+
         const blockMap = pageData.block || {};
         const dbBlock =
           blockMap[toDashedId(this.databaseId)]?.value ??
           blockMap[this.databaseId]?.value;
-        const rawPosition = (dbBlock as any)?.format?.page_cover_position;
+        const pageFormat = (dbBlock as any)?.format;
+        const rawPosition = pageFormat?.page_cover_position;
 
         if (typeof rawPosition === 'number' && Number.isFinite(rawPosition) && rawPosition >= 0 && rawPosition <= 1) {
           coverPosition = Number(((1 - rawPosition) * 100).toFixed(2));
         }
+
+        // block page_cover 的 URL 取官方 API 文件对象而非 recordMap 原始引用
+        // （attachment: 形式经代理无法访问）
+        if (!coverUrl && pageFormat?.page_cover && database.cover) {
+          coverUrl = resolveCover(database.cover, {
+            id: toDashedId(this.databaseId),
+            table: 'block',
+          });
+        }
       } catch (error) {
-        console.warn('[NotionAPI] Failed to fetch cover position:', error);
+        console.warn('[NotionAPI] Failed to fetch database cover/icon:', error);
+      }
+
+      // recordMap 无 icon 时回退官方 API（归属同为 collection 记录）
+      if (!icon && database.icon) {
+        icon = resolveIcon(database.icon, {
+          id: dataSourceId,
+          table: 'collection',
+        });
       }
 
       return { title, description, coverUrl, coverPosition, icon };
