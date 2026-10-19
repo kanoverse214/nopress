@@ -4,7 +4,10 @@
  * Notion 的文件引用有多种来源和形状，过期规则各不相同：
  * - 官方 API：file 对象（{type: 'external'|'file'}），file.url 为 1 小时过期的 S3 签名 URL
  * - 非官方 API：内部字符串，2025-08 起为 attachment:<fileId>:<name> 新格式
- * - 站点内图片统一转换为 notion.so/image/ 代理 URL（服务端代为鉴权，长期有效）
+ * - 站点内图片统一转换为 notion.so/image/ 代理 URL（长期有效）。
+ *   代理按 owner（table + id）鉴权，owner 指向文件实际存储的记录
+ *   （block 或 collection），与 URL 取自官方 API 对象还是 recordMap
+ *   引用无关
  * - PDF/附件等非图片文件代理不支持，由调用方走 signed_url（见 renderer）
  */
 
