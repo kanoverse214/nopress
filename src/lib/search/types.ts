@@ -5,7 +5,7 @@
  * 其余类型描述无头客户端 @lib/search/client 的调用面
  */
 
-/** 端点中的单条文档（正文为纯文本，代码块已剔除） */
+/** 端点中的单条文档（正文为纯文本；HTML 标签与实体已剔除，代码块文本保留） */
 export interface SearchDocument {
   /** = slug，站内唯一 */
   id: string;

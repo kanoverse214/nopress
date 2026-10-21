@@ -179,7 +179,7 @@ const { accentColor = '#0066cc' } = themeOptions as { accentColor?: string };
     "title": "…",
     "tags": ["…"],               // page 为空数组
     "excerpt": "…",              // description 或正文截断（160 字）
-    "body": "…",                 // 全文纯文本（HTML 与代码块已剔除）
+    "body": "…",                 // 全文纯文本（HTML 标签与实体已剔除；代码块文本保留在正文中）
     "date": "2026-08-21"         // publishedAt
   }
 ]
@@ -208,7 +208,7 @@ const result = search.query('全文搜索');     // 索引就绪后同步返回
 |------|----------|
 | 容器 | 由主题提供（`set:html` 的挂载点）；若需 TOC 功能必须含 `notion-content` 类，见 §5 |
 | 段落/标题/引用/分隔线 | `<p>` `<h1>`-`<h3>`（带 `id` 锚点） `<blockquote class="notion-quote">` `<hr class="notion-divider">` |
-| 嵌套块容器 | 嵌套列表/column 等的子块包在 `div.notion-children` 中 |
+| 嵌套块容器 | 段落/引用的子块包在 `div.notion-children` 中；列表项子块直接并入 `<li>`，column 子块直接进 `.notion-column`，不另加包裹 |
 | 富文本颜色 | 行内/块级 Notion 颜色：文字色 `notion-{color}`、背景色 `notion-{color}-background`，色域 `gray/brown/orange/yellow/green/blue/purple/pink/red`，挂在 `<span>` 或 `<p>` 上；主题应提供全部 9 色的双模式映射 |
 | Callout | `.notion-callout`(带 `notion-callout-{color}-background` 变体) > `.notion-callout-icon`(emoji 或 `img.notion-callout-icon-img`) + `.notion-callout-content` |
 | 代码块 | `.notion-code-block` > `.notion-code-header`（`.notion-code-language` + 复制按钮 `.notion-code-copy`）+ `pre.notion-code > code.language-{lang}`，可选 `.notion-code-caption`；Prism token 配色（`.token.*`）由主题 CSS 负责 |
@@ -219,9 +219,9 @@ const result = search.query('全文搜索');     // 索引就绪后同步返回
 | 图片 | `figure.notion-image.notion-image-{center\|left\|right}`（可选加 `notion-image-page-width` / `notion-image-full-width`）> `<a class="glightbox" data-gallery="article-images" data-title data-description><img …></a>`；`<img>` 带 `srcset`/`sizes`（按视口与 DPR 请求更小的候选，插槽估算基于默认主题的 900px 正文容器），无内联脚本——`a` 元素的 `data-aspect-ratio` / `.loaded` 由 `image-gallery` 脚本在图片加载后补设；多图排布用 `.notion-column-list > .notion-column` |
 | 书签卡片 | `.notion-bookmark` > `.notion-bookmark-info`（title/description/url）+ `.notion-bookmark-cover` |
 | 链接提及 | `.notion-mention` > `.notion-mention-icon`（`img.notion-mention-favicon`）+ `.notion-mention-text`，整体为 `<a>` 时可点击 |
-| 嵌入 | `figure.notion-embed-wrapper > iframe.notion-embed`（+ `figcaption`）；Twitter 变体 `notion-embed--twitter`；无法内嵌时降级为 `.notion-embed--fallback` 链接 |
-| 视频 | `figure.notion-video-wrapper > iframe.notion-video`（+ `figcaption`） |
-| PDF | `.notion-pdf` > `.notion-pdf-viewer`（iframe） |
+| 嵌入 | `figure.notion-embed > .notion-embed-wrapper > iframe`（+ `figcaption`）；Twitter 变体 `notion-embed--twitter`（oEmbed HTML）；无法内嵌时降级为 `notion-embed--fallback` 内的链接卡片 |
+| 视频 | `figure.notion-video`（+ `figcaption`），三种形态：YouTube 外链 `.notion-video-wrapper > iframe`、其他外链为链接 `<a>`、上传视频为 `<video controls>` |
+| PDF | 可内嵌（外链 PDF 或已取得签名 URL）时：`.notion-pdf > .notion-pdf-viewer > <object type="application/pdf">`（object 内含降级链接，签名过期后浏览器降级显示）+ 可选 `.notion-pdf-caption`；拿不到签名 URL 的上传 PDF 降级为 `.notion-file > a` 链接 |
 | Toggle | 原生 `<details class="notion-toggle">` > `<summary class="notion-toggle-title">` + `.notion-toggle-content`——原生元素交互，无需 JS |
 | Todo 列表 | `.notion-todo-list > .notion-todo-item`（勾选项带 `checked`） |
 | 子页面 | `.notion-child-page` 链接 |

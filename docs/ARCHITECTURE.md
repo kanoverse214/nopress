@@ -154,7 +154,7 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 - `integration.ts` — 按 `SITE_ENABLE_SEARCH`（默认开）决定是否把文档集端点 `injectRoute` 为 `/search-docs.json`；关闭时路由不存在，主题界面降级为不可用态
 - `endpoint.ts` — 端点实现（放 lib 而非 `src/pages/`：后者的文件会无条件成为路由，无法按配置摘除）；数据走 `dataService` 复用 `all-posts` 等缓存，零额外 Notion 请求
-- `documents.ts` — `Post[]`/`Page[]` → `SearchDocument[]`：`isValidSlug` 过滤（与路由同口径）、`extractPlainText` 纯文本化（代码块剔除、HTML 实体解码）、全局按发布日期降序
+- `documents.ts` — `Post[]`/`Page[]` → `SearchDocument[]`：`isValidSlug` 过滤（与路由同口径）、`extractPlainText` 纯文本化 + HTML 实体解码（代码块文本保留在正文中）、全局按发布日期降序
 - `client.ts` — 无头客户端 `createSearchClient()`：首次 `await ready` 才 fetch 端点并动态 import minisearch 建库（懒加载）；`query()` 同步返回 ok/loading/unavailable 三态，附正文摘要片段与命中词；分词用 `Intl.Segmenter`（中文词级切分 + NFKC 归一化），不支持时降级 CJK 二元组
 - 默认主题参考实现：`src/themes/default/scripts/search.ts` + `components/SearchDialog.astro` + `styles/search.css`
 
