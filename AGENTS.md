@@ -45,8 +45,8 @@ src/
 │   # 主题契约见 docs/THEMES.md；清单经 zod 验证（id/name/version 必填）
 ├── lib/
 │   ├── notion/
-│   │   ├── service/      # NotionDataService 单例（import dataService from '@lib/notion/service'）
-│   │   ├── api/          # NotionAPI：官方 SDK 封装 + 元数据提取（extractMetadata 逻辑在此）
+│   │   ├── service/      # NotionDataService 单例：缓存 + 元数据提取（extractMetadata 在此；import dataService from '@lib/notion/service'）
+│   │   ├── api/          # NotionAPI：官方 SDK 封装（查询/过滤/排序、签名 URL）+ 非官方 API
 │   │   ├── renderer/     # 自研块渲染器：Notion blocks → HTML（30+ 块类型）
 │   │   ├── database/     # 嵌入式 child_database 渲染（表格/画廊视图）
 │   │   ├── opengraph.ts  # metascraper 抓取 bookmark 链接的 OG 元数据
@@ -122,7 +122,7 @@ src/
 
 | 任务 | 去哪里 |
 |------|--------|
-| 新增/修改 Notion 字段 | `src/lib/types.ts`（Post 接口）→ `src/lib/notion/api/index.ts`（提取）→ 上表 schema |
+| 新增/修改 Notion 字段 | `src/lib/types.ts`（Post 接口）→ `src/lib/notion/service/index.ts`（字段提取）→ `src/lib/notion/api/index.ts`（查询/过滤/排序）→ 上表 schema |
 | 改页面样式/布局 | `src/themes/default/`（styles/、layouts/） |
 | 新增/修改主题 | `src/themes/<id>/`，遵循 `docs/THEMES.md` 契约（minimal 为参考实现） |
 | 新增客户端功能 | `src/scripts/` 新建脚本 + `BaseLayout.astro` 引入 |

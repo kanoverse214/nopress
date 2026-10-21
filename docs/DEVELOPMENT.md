@@ -49,7 +49,7 @@ src/
 | 任务 | 入口 |
 |------|------|
 | 改页面样式/布局 | `src/themes/<主题>/`（styles/、layouts/、components/） |
-| 新增/修改 Notion 字段 | `src/lib/types.ts` → `src/lib/notion/api/index.ts` → 同步 Notion Database schema |
+| 新增/修改 Notion 字段 | `src/lib/types.ts` → `src/lib/notion/service/index.ts`（字段提取）→ `src/lib/notion/api/index.ts`（查询/过滤）→ 同步 Notion Database schema |
 | 自定义 Notion 块渲染 | `src/lib/notion/renderer/block-renderer.ts`（按块类型 switch） |
 | 新增客户端功能 | `src/scripts/` 新脚本 + 主题 BaseLayout 引入 |
 | 新增/修改主题 | 从 `src/themes/minimal/` 起步，遵循 [主题契约](./THEMES.md) |
