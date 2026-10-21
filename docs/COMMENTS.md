@@ -22,7 +22,7 @@ NoPress 通过 [Giscus](https://giscus.app)（基于 GitHub Discussions）提供
 ✅ **反应功能**：支持表情反应（👍👎😄🎉🚀❤️）
 ✅ **多语言**：支持简体中文、英语等多种语言
 ✅ **懒加载**：滚动到可视区域时才加载，不影响首屏性能
-✅ **深色适配**：评论主题跟随访客系统深浅色（`preferred_color_scheme`），无需配置
+✅ **深色适配**：评论主题跟随站点深浅色模式，切换即时生效，无需配置
 
 **支持的页面**（评论组件所在位置）：
 - ✅ Post 页面（博客文章）：`/post/{slug}`
@@ -101,7 +101,7 @@ NoPress 通过 [Giscus](https://giscus.app)（基于 GitHub Discussions）提供
    - `data-category` → 分类名称
    - `data-category-id` → 分类 ID（`DIC_kwDO...` 开头）
 
-> **主题选项不用管**：giscus.app 上的"主题"选择只影响它生成的示例脚本；NoPress 固定使用 `preferred_color_scheme`（跟随访客系统深浅色），见[高级配置](#高级配置)。
+> **主题选项不用管**：giscus.app 上的"主题"选择只影响它生成的示例脚本；NoPress 固定跟随站点深浅色模式，见[高级配置](#高级配置)。
 
 ### 步骤 4：配置环境变量
 
@@ -312,26 +312,22 @@ A: Giscus 支持从其他评论系统导入，详见 [Giscus 迁移指南](https
 
 ### Q: 评论会跟随站点的深色模式切换吗？
 
-A: 评论主题固定为 `preferred_color_scheme`——跟随**访客操作系统**的深浅色偏好，无需配置。站点内的深色模式切换按钮（主题自带）不会实时同步给评论框；如需固定主题或自定义样式，见[高级配置](#高级配置)。
+A: 会。评论主题跟随站点深浅色模式，点击站点的深浅色切换按钮即时生效（无需刷新），无需任何配置。如需固定主题或自定义样式，见[高级配置](#高级配置)。
 
 ## 高级配置
 
 ### 自定义评论主题
 
-默认使用 `preferred_color_scheme`（跟随系统）。如需固定为某个内置主题，或使用自定义主题 CSS，编辑 `src/scripts/comments/giscus.ts` 第 101 行：
+默认跟随站点深浅色：浅色模式用 `light`，深色模式用 `transparent_dark`（透明底，融入站点自身底色）。如需调整，编辑 `src/scripts/comments/giscus.ts` 顶部的 `GISCUS_THEME` 常量对：
 
 ```typescript
-script.setAttribute('data-theme', 'preferred_color_scheme');
-
-// 可选值示例：
-// 'light'                        - 固定浅色
-// 'dark'                         - 固定深色
-// 'dark_dimmed'                  - 柔和深色
-// 'transparent'                  - 透明主题
-// 'https://your-custom-theme.css' - 自定义主题 CSS
+const GISCUS_THEME: Record<SiteThemeMode, string> = {
+  light: 'light',
+  dark: 'transparent_dark',   // 可换 'dark'、'dark_dimmed' 或自定义主题 CSS 的 URL
+};
 ```
 
-常用内置主题：`light`、`light_high_contrast`、`light_protanopia`、`dark`、`dark_dimmed`、`dark_high_contrast`、`dark_tritanopia`、`transparent`、`preferred_color_scheme`、`noborder_light`、`noborder_dark`、`cobalt`、`purple_dark`。
+常用内置主题：`light`、`light_high_contrast`、`light_protanopia`、`light_tritanopia`、`dark`、`dark_dimmed`、`dark_high_contrast`、`dark_tritanopia`、`transparent_dark`、`preferred_color_scheme`、`noborder_light`、`noborder_dark`、`cobalt`、`purple_dark`。
 
 完整主题列表：[Giscus 高级用法 - Theme](https://github.com/giscus/giscus/blob/main/ADVANCED-USAGE.md#theme)
 

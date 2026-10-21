@@ -2,13 +2,14 @@
  * Giscus 评论系统集成
  * @see https://giscus.app
  *
- * 评论主题固定为 preferred_color_scheme，跟随访客系统的深浅色偏好；
- * 如需固定主题或自定义主题 CSS，修改 loadGiscusScript 中的 data-theme
+ * 评论主题跟随站点深浅色（THEMES.md §6 的 html class 契约）：
+ * 初始值在 iframe 创建时按当前模式写入，之后经 setConfig 消息热切，无需重载脚本
  *
  * Core 层提供的工具脚本，主题可以选择使用或自己实现
  */
 
 import type { GiscusConfig } from '@lib/types';
+import { getSiteThemeMode, onSiteThemeChange, type SiteThemeMode } from '../theme-mode';
 
 export interface GiscusInitOptions {
   container: HTMLElement; // 评论容器元素
@@ -22,6 +23,21 @@ function containerHasGiscus(container: HTMLElement): boolean {
   return !!container.querySelector('iframe.giscus-frame, #giscus-script');
 }
 
+/** 站点深浅色对应的 giscus 内置主题；深色用 transparent_dark 以融入站点自身底色 */
+const GISCUS_THEME: Record<SiteThemeMode, string> = {
+  light: 'light',
+  dark: 'transparent_dark',
+};
+
+// 向已挂载的 giscus iframe 推送当前模式对应的主题（iframe 未就绪时为 no-op）
+function pushGiscusTheme(): void {
+  document.querySelector<HTMLIFrameElement>('iframe.giscus-frame')
+    ?.contentWindow?.postMessage(
+      { giscus: { setConfig: { theme: GISCUS_THEME[getSiteThemeMode()] } } },
+      'https://giscus.app',
+    );
+}
+
 /**
  * 初始化 Giscus 评论系统
  * @param options.container - 评论容器 DOM 元素
@@ -33,6 +49,9 @@ export async function initGiscus(options: GiscusInitOptions): Promise<void> {
   if (containerHasGiscus(options.container)) {
     return;
   }
+
+  // 站点深浅色变化时热切评论主题；Set 按引用去重，软导航重复 init 不会叠加订阅
+  onSiteThemeChange(pushGiscusTheme);
 
   const { container, slug, config } = options;
 
@@ -96,9 +115,8 @@ async function loadGiscusScript(
     script.setAttribute('data-lang', config.lang);
     script.setAttribute('data-lazy', config.lazy.toString());
 
-    // 评论主题：preferred_color_scheme 跟随访客系统深浅色，
-    // 不随站点内深色模式切换实时同步；自定义主题改此处（内置主题名或 CSS URL）
-    script.setAttribute('data-theme', 'preferred_color_scheme');
+    // 主题跟随站点深浅色：初始值在 iframe 创建时读取，后续变化经 setConfig 热切
+    script.setAttribute('data-theme', GISCUS_THEME[getSiteThemeMode()]);
 
     // 设置页面映射（使用 pathname）
     script.setAttribute('data-term', slug);
@@ -110,6 +128,8 @@ async function loadGiscusScript(
       if (loading) {
         loading.remove();
       }
+      // client.js 执行到 iframe 建立之间的模式切换在此兜底纠正；iframe 未建立时为 no-op
+      pushGiscusTheme();
       resolve();
     };
 
