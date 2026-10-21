@@ -2,8 +2,8 @@
  * Giscus 评论系统集成
  * @see https://giscus.app
  *
- * 注意: 主题同步功能等待主题系统完善后再实现
- * 当前版本使用固定的 Giscus 主题
+ * 评论主题固定为 preferred_color_scheme，跟随访客系统的深浅色偏好；
+ * 如需固定主题或自定义主题 CSS，修改 loadGiscusScript 中的 data-theme
  *
  * Core 层提供的工具脚本，主题可以选择使用或自己实现
  */
@@ -96,8 +96,8 @@ async function loadGiscusScript(
     script.setAttribute('data-lang', config.lang);
     script.setAttribute('data-lazy', config.lazy.toString());
 
-    // 设置主题（固定使用 preferred_color_scheme，等待主题系统完善）
-    // 未来扩展: 支持跟随系统主题切换
+    // 评论主题：preferred_color_scheme 跟随访客系统深浅色，
+    // 不随站点内深色模式切换实时同步；自定义主题改此处（内置主题名或 CSS URL）
     script.setAttribute('data-theme', 'preferred_color_scheme');
 
     // 设置页面映射（使用 pathname）
