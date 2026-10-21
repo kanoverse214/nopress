@@ -30,3 +30,10 @@ export function readRuntimeEnv(key: string): string | undefined {
   const raw = (import.meta.env as Record<string, unknown> | undefined)?.[key] ?? process.env?.[key];
   return raw === undefined || raw === null || raw === '' ? undefined : String(raw);
 }
+
+/**
+ * 判断布尔开关是否被显式关闭（'false' / '0'），未设置或其他值视为开启
+ */
+export function isEnvDisabled(raw: string | undefined): boolean {
+  return raw !== undefined && ['false', '0'].includes(raw.trim().toLowerCase());
+}

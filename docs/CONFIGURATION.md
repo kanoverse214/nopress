@@ -102,8 +102,8 @@ SITE_TITLE=My Custom Blog  # ← 使用自定义标题，不使用 Database 名�
 | `SITE_ICON` | 站点图标/Favicon | 留空使用 Database 图标 | `/favicon.ico` 或 `🚀` |
 | `SITE_START_YEAR` | 站点起始年份，用于页脚版权年份 | 留空仅显示构建当年 | `2023` |
 | `SITE_POSTS_PER_PAGE` | 每页文章数 | `10` | `20` |
-| `SITE_ENABLE_RSS` | 启用 RSS | `true` | `true`, `false` |
-| `SITE_ENABLE_SITEMAP` | 启用 Sitemap | `true` | `true`, `false` |
+| `SITE_ENABLE_RSS` | 启用 RSS（生成 `/rss/feed.xml`，主题输出 RSS 发现链接与页脚入口） | `true` | `true`, `false` |
+| `SITE_ENABLE_SITEMAP` | 启用 Sitemap（生成 `sitemap-index.xml`，robots.txt 输出 Sitemap 行） | `true` | `true`, `false` |
 | `SITE_ENABLE_SEARCH` | 启用全文搜索（生成 `/search-docs.json` 文档集端点） | `true` | `true`, `false` |
 
 **自动获取 Database 元数据**：

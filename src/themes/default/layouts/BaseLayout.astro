@@ -63,7 +63,9 @@ const ogImage = image || metaTags.ogImage;
     {markdownUrl && (
       <link rel="alternate" type="text/markdown" title={title} href={markdownUrl} />
     )}
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    {metaConfig.enableSitemap && (
+      <link rel="sitemap" href="/sitemap-index.xml" />
+    )}
 
     <title>{metaTags.title}</title>
     <meta name="description" content={metaTags.description} />

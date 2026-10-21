@@ -145,7 +145,7 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 - `schema.ts` — 主题清单的 zod 校验（`theme.config.mjs` 必填 id/name/version）
 - 最小约束原则：框架只注入路由和配置别名，不干涉主题内部结构
 
-`src/pages/` 只放内核数据端点（`.md`、`llms.txt`、RSS、robots），主题页面和端点放主题的 `pages/` 下。
+`src/pages/` 只放无条件构建的内核数据端点（`.md`、`llms.txt`、robots）；RSS feed 与搜索文档集这类按开关注入的端点放各自的 lib 模块（见 §10、§11），主题页面和端点放主题的 `pages/` 下。
 
 ### 9. Markdown 转换（`src/lib/markdown/`）
 
@@ -163,11 +163,15 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 规模注记：数百篇文章量级下文档集 gzip 后约几百 KB～2MB、minisearch 建库一两百毫秒，懒加载使其只在首次搜索时付出成本；数千篇以上需演进为分片文档或 Worker 建库，演进封闭在 `client.ts` 内、主题 API 不变。
 
-### 11. 配置系统（`src/lib/config/` + `src/config/`）
+### 11. RSS feed（`src/lib/rss/`）
+
+构建期产出 `/rss/feed.xml`（最近 10 篇文章，全文 HTML）。与全文搜索同一分层：`integration.ts` 按 `SITE_ENABLE_RSS`（默认开）决定是否 `injectRoute`，关闭时路由不存在；主题经 `metaConfig.enableRSS`（透传自 `SITE_CONFIG`，见 `core/config/meta.ts`）同步隐藏 RSS 发现链接与页脚入口。`endpoint.ts` 数据走 `dataService` 复用 `all-posts` 缓存，零额外 Notion 请求。
+
+### 12. 配置系统（`src/lib/config/` + `src/config/`）
 
 优先级：环境变量 > `.env` > 代码默认值。单键读取统一走 `src/lib/config/env.ts`：配置期（`astro.config.mjs` / integration hooks，早于 Vite 初始化）用 `readEnv()` 经 `loadEnv` 补读 `.env`，渲染期（Vite 模块内）用 `readRuntimeEnv()` 读 `import.meta.env`；`loader.ts` 面向 `SITE_*` / `COMMENTS_*` 做批量加载与类型转换。`SITE_TITLE` / `SITE_DESCRIPTION` / `SITE_ICON` 留空时自动回填 Notion Database 元数据（`resolved-site.ts`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点链接。完整变量表见 [CONFIGURATION.md](./CONFIGURATION.md)。
 
-### 12. 内容失败策略（`src/lib/utils/failure.ts`）
+### 13. 内容失败策略（`src/lib/utils/failure.ts`）
 
 默认严失败（`NOPRESS_STRICT=true`）：站点内容在重试耗尽后仍失败时抛出 `ContentRenderError` 中断构建，避免残缺页面静默发布；`NOPRESS_STRICT=false` 降级为告警 + 回退。约束范围是**站点内容**——正文子块、同步块、record map 补齐、菜单查询、无效 slug、`child_database` 的查询与视图配置失败。重试下沉到 API 调用层（官方 SDK 经 `official()`，见 §6；非官方经 `fetchBlocksGuarded` / `notionUnofficialRetryHelper`），因此 `handleContentFailure` 总是在对应调用重试耗尽后才触发；`block-renderer.ts` 为每个块的渲染失败补上 `pageId`/`blockId`/`blockType` 上下文后重新抛出，`renderer/index.ts` 对内容类失败不再吞错（仅格式信息缺失可继续渲染）。
 
@@ -177,7 +181,7 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 ```
 src/
-├── pages/                        # 只有数据端点：post/[slug].md.ts、[slug].md.ts、llms.txt.ts、rss/、robots.txt.ts
+├── pages/                        # 只有数据端点：post/[slug].md.ts、[slug].md.ts、llms.txt.ts、robots.txt.ts
 ├── themes/                       # 主题契约见 docs/THEMES.md
 │   ├── default/                  # 默认主题（全功能）：首页、/post/[slug]、/[slug]、/tag/[tag]、/page/[page]、archive、全文搜索
 │   │   ├── layouts/              # BaseLayout
@@ -199,6 +203,7 @@ src/
 │   ├── cache/                    # notionCache：MemoryCache / FileCache + 数据层代码版本（自动失效）
 │   ├── markdown/                 # htmlToMarkdown（turndown + Notion 规则）
 │   ├── search/                   # 全文搜索：documents、endpoint（/search-docs.json）、client（无头客户端）、integration
+│   ├── rss/                      # RSS feed（/rss/feed.xml）：endpoint + integration（按 SITE_ENABLE_RSS 注入）
 │   ├── theme/                    # 主题系统：manager、loader、schema、astro-integration
 │   ├── config/                   # env（环境变量统一读取）、loader（SITE_*/COMMENTS_* 配置加载）
 │   └── utils/                    # api-helpers（限流/重试）、failure（失败策略）、slug、date、format、version（构建 commit id）

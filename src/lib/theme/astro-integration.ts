@@ -28,8 +28,9 @@ const RESERVED_PATTERNS = new Set([
   '/robots.txt',
   '/sitemap-index.xml',
   '/search-docs.json',
-  // 搜索文档集端点：经 nopressSearchIntegration 注入（SITE_ENABLE_SEARCH 关闭时路由不存在，
-  // 路径仍保留，避免主题用同名端点承载其他内容造成歧义）
+  // 条件注入的内核端点：/search-docs.json 经 nopressSearchIntegration（SITE_ENABLE_SEARCH）、
+  // /rss/feed.xml 经 nopressRssIntegration（SITE_ENABLE_RSS）注入，关闭时路由不存在，
+  // 路径仍保留，避免主题用同名路由承载其他内容造成歧义
 ]);
 
 /**

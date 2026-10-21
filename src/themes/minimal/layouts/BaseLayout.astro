@@ -46,7 +46,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     {metaConfig.enableRSS && (
       <link rel="alternate" type="application/rss+xml" title={metaConfig.title} href={metaConfig.rssUrl} />
     )}
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    {metaConfig.enableSitemap && (
+      <link rel="sitemap" href="/sitemap-index.xml" />
+    )}
     <title>{metaTags.title}</title>
     <meta name="description" content={metaTags.description} />
     <meta property="og:type" content={metaTags.ogType} />

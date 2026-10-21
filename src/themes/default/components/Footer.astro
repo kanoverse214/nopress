@@ -40,9 +40,11 @@ const icons: Record<string, string> = {
             <span class="icon-wrapper" set:html={icons[platform] || icons.github} />
           </a>
         ))}
-        <a href="/rss/feed.xml" class="social-icon rss" aria-label="RSS订阅">
-          <span class="icon-wrapper" set:html={icons.rss} />
-        </a>
+        {SITE_CONFIG.enableRSS && (
+          <a href="/rss/feed.xml" class="social-icon rss" aria-label="RSS订阅">
+            <span class="icon-wrapper" set:html={icons.rss} />
+          </a>
+        )}
       </div>
     </div>
   </div>

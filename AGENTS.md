@@ -24,7 +24,7 @@ npm run preview   # 预览构建产物
 
 ```
 src/
-├── pages/                # 只有数据端点：post/[slug].md.ts、[slug].md.ts、llms.txt.ts、rss/、robots.txt.ts
+├── pages/                # 只有数据端点：post/[slug].md.ts、[slug].md.ts、llms.txt.ts、robots.txt.ts
 ├── themes/
 │   ├── default/          # 默认主题（全功能）：全部 6 个路由 + TOC/灯箱/评论/全文搜索
 │   │   ├── pages/        # 被注入为 Astro 路由（首页、/post/[slug]、/[slug]、/tag/[tag]、/page/[page]、archive）
@@ -54,6 +54,7 @@ src/
 │   ├── cache/            # notionCache 单例：dev=MemoryCache / build=FileCache；namespace 掺数据层代码版本 + 数据源标识，自动失效
 │   ├── markdown/         # htmlToMarkdown()：HTML → Markdown（turndown + GFM + Notion 规则）
 │   ├── search/           # 全文搜索内核接口：documents、endpoint（/search-docs.json，经 integration.ts 按 SITE_ENABLE_SEARCH 注入）、client（无头客户端 minisearch）
+│   ├── rss/              # RSS feed 端点（/rss/feed.xml，经 integration.ts 按 SITE_ENABLE_RSS 注入）
 │   ├── theme/            # 主题系统：manager / loader / zod schema / astro-integration
 │   ├── config/           # env.ts（环境变量统一读取：配置期 readEnv / 渲染期 readRuntimeEnv）+ loader.ts（SITE_*、COMMENTS_* 配置加载）
 │   └── utils/            # slug / date / format / api-helpers（RateLimiter + RetryHelper）/ failure（失败策略）/ version（构建 commit id）
@@ -70,7 +71,7 @@ src/
 
 2. **Notion Database 属性名必须全小写**（`title`、`status`、`date`…）。首字母大写会静默查不到数据。
 
-3. **页面与端点路由都写在主题目录**。`src/pages/` 只放内核数据端点（`.md`、`llms.txt`、RSS、robots），页面 `.astro` 和主题端点 `.ts` 都放在主题的 `pages/` 下，由 `src/lib/theme/astro-integration.ts` 扫描 `src/themes/*/pages/` 注入路由；`NOPRESS_THEME` 环境变量切换主题（默认 `default`）。主题路由撞内核保留路径（`/rss/feed.xml`、`/[slug].md`、`/search-docs.json` 等）会在构建期报错。
+3. **页面与端点路由都写在主题目录**。`src/pages/` 只放无条件构建的内核数据端点（`.md`、`llms.txt`、robots）；RSS feed 与搜索文档集分别由 `src/lib/rss/`、`src/lib/search/` 的 integration 按 `SITE_ENABLE_RSS` / `SITE_ENABLE_SEARCH` 注入，页面 `.astro` 和主题端点 `.ts` 都放在主题的 `pages/` 下，由 `src/lib/theme/astro-integration.ts` 扫描 `src/themes/*/pages/` 注入路由；`NOPRESS_THEME` 环境变量切换主题（默认 `default`）。主题路由撞内核保留路径（`/rss/feed.xml`、`/[slug].md`、`/search-docs.json` 等）会在构建期报错。
 
 4. **astro-compress 的配置要求**（`astro.config.mjs`）：
    - HTML 选项必须挂在 `HTML['html-minifier-terser']` 键下，写在 `HTML` 顶层会被静默忽略

@@ -43,7 +43,7 @@ const metaConfig = getMetaConfig(SITE_CONFIG);
 const metaTags = generateMetaTags(metaConfig, title, Astro.url.pathname, description);
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = image || metaTags.ogImage;
-const enableRSS = SITE_CONFIG.enableRSS && metaConfig.enableRSS;
+const enableRSS = metaConfig.enableRSS;
 const currentPath = normalizePath(Astro.url.pathname);
 
 const socialLinks = Object.entries(SITE_CONFIG.social ?? {}).filter(([, url]) => Boolean(url));
@@ -72,7 +72,9 @@ const SOCIAL_LABELS: Record<string, string> = {
     {markdownUrl && (
       <link rel="alternate" type="text/markdown" title={title} href={markdownUrl} />
     )}
-    <link rel="sitemap" href="/sitemap-index.xml" />
+    {metaConfig.enableSitemap && (
+      <link rel="sitemap" href="/sitemap-index.xml" />
+    )}
 
     <title>{metaTags.title}</title>
     <meta name="description" content={metaTags.description} />

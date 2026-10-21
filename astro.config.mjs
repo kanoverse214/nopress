@@ -3,9 +3,13 @@ import sitemap from '@astrojs/sitemap';
 import compress from 'astro-compress';
 import { nopressThemeIntegration } from './src/lib/theme/astro-integration.ts';
 import { nopressSearchIntegration } from './src/lib/search/integration.ts';
-import { readEnv } from './src/lib/config/env.ts';
+import { nopressRssIntegration } from './src/lib/rss/integration.ts';
+import { readEnv, isEnvDisabled } from './src/lib/config/env.ts';
 
-const SITE_URL = readEnv('SITE_URL', process.env.NODE_ENV || 'development') || 'http://localhost:4321';
+const mode = process.env.NODE_ENV || 'development';
+const SITE_URL = readEnv('SITE_URL', mode) || 'http://localhost:4321';
+// sitemap 由 @astrojs/sitemap 生成，按 SITE_ENABLE_SITEMAP 决定是否挂载
+const sitemapEnabled = !isEnvDisabled(readEnv('SITE_ENABLE_SITEMAP', mode));
 
 // https://astro.build/config
 export default defineConfig({
@@ -25,7 +29,8 @@ export default defineConfig({
   integrations: [
     nopressThemeIntegration(),
     nopressSearchIntegration(),
-    sitemap(),
+    nopressRssIntegration(),
+    ...(sitemapEnabled ? [sitemap()] : []),
     // HTML/CSS/JS 压缩
     compress({
       // HTML 压缩配置（选项需挂在 html-minifier-terser 键下）

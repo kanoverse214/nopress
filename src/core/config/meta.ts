@@ -19,8 +19,9 @@ export const MetaConfigSchema = z.object({
   // 深色模式
   darkMode: z.boolean().default(true),
 
-  // RSS
+  // RSS / Sitemap 开关（透传 SITE_ENABLE_RSS / SITE_ENABLE_SITEMAP）
   enableRSS: z.boolean().default(true),
+  enableSitemap: z.boolean().default(true),
   rssUrl: z.string().default('/rss/feed.xml'),
 });
 
@@ -40,6 +41,7 @@ export const DEFAULT_META_CONFIG: MetaConfig = {
   twitterSite: undefined,  // 没有默认 Twitter 账号
   darkMode: true,
   enableRSS: true,
+  enableSitemap: true,
   rssUrl: '/rss/feed.xml',
 };
 
@@ -56,5 +58,7 @@ export function getMetaConfig(siteConfig: any): MetaConfig {
     ogImage: siteConfig.seo?.ogImage ?? DEFAULT_META_CONFIG.ogImage,
     twitterCard: siteConfig.seo?.twitterCard ?? DEFAULT_META_CONFIG.twitterCard,
     twitterSite: siteConfig.seo?.twitterSite ?? DEFAULT_META_CONFIG.twitterSite,
+    enableRSS: siteConfig.enableRSS ?? DEFAULT_META_CONFIG.enableRSS,
+    enableSitemap: siteConfig.enableSitemap ?? DEFAULT_META_CONFIG.enableSitemap,
   };
 }

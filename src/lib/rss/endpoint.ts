@@ -1,3 +1,9 @@
+/**
+ * /rss/feed.xml 数据端点
+ *
+ * 路由由 nopressRssIntegration 按 SITE_ENABLE_RSS 条件注入（关闭时不生成），
+ * 文件因此放在 lib 下而不是 src/pages——后者的文件会无条件成为路由
+ */
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
 import { getResolvedSiteConfig } from '@config/resolved-site';
