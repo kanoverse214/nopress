@@ -1,6 +1,8 @@
 import { MemoryCache } from './memory-cache';
 import { FileCache } from './file-cache';
 import { getDataLayerVersion } from './code-version';
+import { readRuntimeEnv } from '../config/env';
+import crypto from 'crypto';
 import type { Cache, CacheConfig, FileCacheConfig } from './types';
 
 /**
@@ -113,12 +115,24 @@ export class CacheManager {
 }
 
 /**
+ * 数据源标识：NOTION_DATABASE_ID 的 sha256 前 8 位
+ * 掺入 namespace 后更换数据源即自动 miss，不同数据源的缓存文件并存互不污染；
+ * token 不参与——db id 已足够区分站点
+ */
+function getDataSourceVersion(): string {
+  const databaseId = readRuntimeEnv('NOTION_DATABASE_ID');
+  if (!databaseId) return 'no-database';
+  return crypto.createHash('sha256').update(databaseId).digest('hex').slice(0, 8);
+}
+
+/**
  * 创建 Notion 专用缓存实例
- * namespace 掺入数据层代码版本：notion/ cache/ utils/ types.ts 变更后
- * 缓存 key 自动变化（自动失效），旧缓存文件由 TTL 过期后 cleanup() 回收
+ * namespace 掺入两个失效维度，旧缓存文件由 TTL 过期后 cleanup() 回收：
+ * - 数据层代码版本：notion/ cache/ utils/ types.ts 变更后自动失效
+ * - 数据源标识：NOTION_DATABASE_ID 变更（更换数据源）后自动失效
  */
 export function createNotionCache(config: CacheManagerConfig = {}): CacheManager {
-  const notionNamespace = `notion:v${getDataLayerVersion()}`;
+  const notionNamespace = `notion:v${getDataLayerVersion()}:${getDataSourceVersion()}`;
 
   return new CacheManager({
     ...config,

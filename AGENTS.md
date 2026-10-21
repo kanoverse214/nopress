@@ -51,7 +51,7 @@ src/
 │   │   ├── database/     # 嵌入式 child_database 渲染（表格/画廊视图）
 │   │   ├── opengraph.ts  # metascraper 抓取 bookmark 链接的 OG 元数据
 │   │   └── file-url.ts
-│   ├── cache/            # notionCache 单例：dev=MemoryCache / build=FileCache；code-version.ts 让缓存随数据层代码自动失效
+│   ├── cache/            # notionCache 单例：dev=MemoryCache / build=FileCache；namespace 掺数据层代码版本 + 数据源标识，自动失效
 │   ├── markdown/         # htmlToMarkdown()：HTML → Markdown（turndown + GFM + Notion 规则）
 │   ├── search/           # 全文搜索内核接口：documents、endpoint（/search-docs.json，经 integration.ts 按 SITE_ENABLE_SEARCH 注入）、client（无头客户端 minisearch）
 │   ├── theme/            # 主题系统：manager / loader / zod schema / astro-integration
@@ -80,7 +80,7 @@ src/
 
 6. **路径别名**：tsconfig.json 定义四个静态别名 `@/*`、`@lib/*`、`@config/*`、`@core/*`；主题集成另在运行时注入 `@theme`（指向激活主题根目录，因随 `NOPRESS_THEME` 变化不进 tsconfig，主题内部相互引用请用相对路径）。不存在 `@components`、`@data`。
 
-7. **缓存语义**：`getAllPosts()` 拉全量后缓存 key `all-posts`，`getPostBySlug()` / `getPostsByTag()` 等都基于它内存过滤，不会为单篇文章单独发请求。`getAllPages()`、`getAllTags()`、`getMenuItems()`、`getDatabaseInfo()` 各有独立缓存 key。缓存 namespace 掺有数据层代码版本 hash（`src/lib/cache/code-version.ts`，覆盖 notion/cache/utils/types.ts），这些代码变更后缓存自动失效，无需手动 `rm -rf .cache/`；其余目录（markdown/theme/config）变更不影响缓存。
+7. **缓存语义**：`getAllPosts()` 拉全量后缓存 key `all-posts`，`getPostBySlug()` / `getPostsByTag()` 等都基于它内存过滤，不会为单篇文章单独发请求。`getAllPages()`、`getAllTags()`、`getMenuItems()`、`getDatabaseInfo()` 各有独立缓存 key。缓存 namespace 掺有数据层代码版本 hash（`src/lib/cache/code-version.ts`，覆盖 notion/cache/utils/types.ts）和数据源标识（`NOTION_DATABASE_ID` 的短 hash），代码或数据源变更后缓存自动失效，无需手动 `rm -rf .cache/`；其余目录（markdown/theme/config）变更不影响缓存。
 
 8. **slug 校验失败的 Post/Page 会被静默跳过**（仅控制台警告），路由匹配用 `slugMatch()` 容忍编码差异。规则在 `src/lib/utils/slug.ts`。
 

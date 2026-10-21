@@ -100,7 +100,10 @@ LayoutRenderer (渲染层)
 | 开发 | MemoryCache | 5 分钟 | 进程内存 |
 | 生产（build） | FileCache | 1 小时 | `.cache/notion/*.json` |
 
-缓存 key 的 namespace 掺入数据层代码版本（`code-version.ts` 对 `src/lib/notion/`、`src/lib/cache/`、`src/lib/utils/`、`src/lib/types.ts` 的内容 hash）：这些代码变更后缓存自动失效，旧缓存文件由 TTL 过期后的 `cleanup()` 回收，无需手动删除 `.cache/`。
+缓存 key 的 namespace 掺入两个失效维度，旧缓存文件由 TTL 过期后的 `cleanup()` 回收，无需手动删除 `.cache/`：
+
+- **数据层代码版本**（`code-version.ts` 对 `src/lib/notion/`、`src/lib/cache/`、`src/lib/utils/`、`src/lib/types.ts` 的内容 hash）：这些代码变更后缓存自动失效。
+- **数据源标识**（`NOTION_DATABASE_ID` 的 sha256 前 8 位）：更换数据源（改 db id）后缓存自动 miss，不同数据源的缓存文件并存互不污染；token 不参与。
 
 ### 6. API 优化（`src/lib/utils/api-helpers.ts`）
 
