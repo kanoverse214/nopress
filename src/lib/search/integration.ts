@@ -6,19 +6,16 @@
  */
 import type { AstroIntegration } from 'astro';
 import { fileURLToPath } from 'url';
-import { loadEnv } from 'vite';
+import { readEnv } from '../config/env';
 
 export function nopressSearchIntegration(): AstroIntegration {
   return {
     name: 'nopress-search',
     hooks: {
       'astro:config:setup': ({ config, command, injectRoute }) => {
-        // hook 早于 Vite 初始化，.env 内容需 loadEnv 补读（与主题集成同法）
         const mode = command === 'dev' ? 'development' : 'production';
         const projectRoot = fileURLToPath(new URL('.', config.root));
-        const raw =
-          process.env.SITE_ENABLE_SEARCH ??
-          loadEnv(mode, projectRoot, 'SITE_ENABLE_SEARCH').SITE_ENABLE_SEARCH;
+        const raw = readEnv('SITE_ENABLE_SEARCH', mode, projectRoot);
         const disabled =
           raw !== undefined && ['false', '0'].includes(raw.trim().toLowerCase());
 

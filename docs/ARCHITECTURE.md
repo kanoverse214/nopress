@@ -160,9 +160,9 @@ Notion 文件 URL 短时效（官方 API 的 S3 签名 URL 约 1 小时有效）
 
 规模注记：数百篇文章量级下文档集 gzip 后约几百 KB～2MB、minisearch 建库一两百毫秒，懒加载使其只在首次搜索时付出成本；数千篇以上需演进为分片文档或 Worker 建库，演进封闭在 `client.ts` 内、主题 API 不变。
 
-### 11. 配置系统（`src/lib/config/loader.ts` + `src/config/`）
+### 11. 配置系统（`src/lib/config/` + `src/config/`）
 
-优先级：环境变量 > `.env` > 代码默认值（经 vite `loadEnv` 读取）。命名规范：`SITE_*`、`COMMENTS_GISCUS_*`。`SITE_TITLE` / `SITE_DESCRIPTION` / `SITE_ICON` 留空时自动回填 Notion Database 元数据（`resolved-site.ts`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点链接。完整变量表见 [CONFIGURATION.md](./CONFIGURATION.md)。
+优先级：环境变量 > `.env` > 代码默认值。单键读取统一走 `src/lib/config/env.ts`：配置期（`astro.config.mjs` / integration hooks，早于 Vite 初始化）用 `readEnv()` 经 `loadEnv` 补读 `.env`，渲染期（Vite 模块内）用 `readRuntimeEnv()` 读 `import.meta.env`；`loader.ts` 面向 `SITE_*` / `COMMENTS_*` 做批量加载与类型转换。`SITE_TITLE` / `SITE_DESCRIPTION` / `SITE_ICON` 留空时自动回填 Notion Database 元数据（`resolved-site.ts`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点链接。完整变量表见 [CONFIGURATION.md](./CONFIGURATION.md)。
 
 ### 12. 内容失败策略（`src/lib/utils/failure.ts`）
 
@@ -197,7 +197,7 @@ src/
 │   ├── markdown/                 # htmlToMarkdown（turndown + Notion 规则）
 │   ├── search/                   # 全文搜索：documents、endpoint（/search-docs.json）、client（无头客户端）、integration
 │   ├── theme/                    # 主题系统：manager、loader、schema、astro-integration
-│   ├── config/loader.ts          # 环境变量配置加载
+│   ├── config/                   # env（环境变量统一读取）、loader（SITE_*/COMMENTS_* 配置加载）
 │   └── utils/                    # api-helpers（限流/重试）、failure（失败策略）、slug、date、format、version（构建 commit id）
 ├── config/                       # site.ts 默认值 + resolved-site.ts（回填 Database 元数据）
 ├── core/                         # meta-helpers（<head> 生成）

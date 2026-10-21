@@ -55,7 +55,7 @@ src/
 │   ├── markdown/         # htmlToMarkdown()：HTML → Markdown（turndown + GFM + Notion 规则）
 │   ├── search/           # 全文搜索内核接口：documents、endpoint（/search-docs.json，经 integration.ts 按 SITE_ENABLE_SEARCH 注入）、client（无头客户端 minisearch）
 │   ├── theme/            # 主题系统：manager / loader / zod schema / astro-integration
-│   ├── config/loader.ts  # 环境变量配置加载（SITE_*、COMMENTS_*）
+│   ├── config/           # env.ts（环境变量统一读取：配置期 readEnv / 渲染期 readRuntimeEnv）+ loader.ts（SITE_*、COMMENTS_* 配置加载）
 │   └── utils/            # slug / date / format / api-helpers（RateLimiter + RetryHelper）/ failure（失败策略）/ version（构建 commit id）
 ├── config/               # site.ts 默认值 + resolved-site.ts（可回填 Notion Database 元信息）
 ├── core/                 # meta-helpers（<head> 标签生成）
@@ -88,7 +88,7 @@ src/
 
 10. **`notion-client`（非官方 API）** 只用于 child_database 视图配置和个别块类型，有 403/429 风险，已配独立限流。新增数据需求优先使用官方 SDK。
 
-11. **配置优先级**：环境变量 > `.env` > 代码默认值（`src/lib/config/loader.ts`，用 vite 的 `loadEnv`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点的绝对链接。
+11. **配置优先级**：环境变量 > `.env` > 代码默认值；单键读取统一走 `src/lib/config/env.ts`（配置期 `readEnv()` 经 `loadEnv` 补读，渲染期 `readRuntimeEnv()`）。`SITE_URL` 影响 sitemap、RSS、canonical 和 `.md` 端点的绝对链接。
 
 12. **主题选项与保留 key**：宿主经 `NOPRESS_THEME_OPTIONS`（JSON）覆盖主题清单声明的 `options`；`darkMode` 为保留 key——声明且为 true 时内核自动注入深色模式初始化。机制与保留清单见 `docs/THEMES.md`。
 

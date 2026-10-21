@@ -6,10 +6,10 @@
 
 import type { AstroIntegration } from 'astro';
 import { fileURLToPath } from 'url';
-import { loadEnv } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import { createThemeManager } from './manager';
+import { readEnv } from '../config/env';
 import { mergeThemeOptions, parseRawOverrides } from './options-merge';
 import type { ThemeLoadConfig, PageRoute } from './types';
 
@@ -48,20 +48,6 @@ function assertNoReservedRoutes(patterns: string[], themeName: string): void {
 }
 
 /**
- * 读取 NOPRESS_THEME_OPTIONS：真实环境变量优先，其次 .env 文件
- *
- * integration hook 在 Vite 初始化前执行，process.env 不含 .env 内容，需用 loadEnv 补读
- */
-function readThemeOptionsEnv(projectRoot: string, command: string): string | undefined {
-  if (process.env.NOPRESS_THEME_OPTIONS) {
-    return process.env.NOPRESS_THEME_OPTIONS;
-  }
-  const mode = command === 'dev' ? 'development' : 'production';
-  const fileEnv = loadEnv(mode, projectRoot, 'NOPRESS_THEME_OPTIONS');
-  return fileEnv.NOPRESS_THEME_OPTIONS || undefined;
-}
-
-/**
  * NoPress 主题集成
  */
 export function nopressThemeIntegration(): AstroIntegration {
@@ -75,10 +61,10 @@ export function nopressThemeIntegration(): AstroIntegration {
         // 创建主题管理器
         const themeManager = createThemeManager(projectRoot);
 
-        // 从环境变量读取主题配置
+        const mode = command === 'dev' ? 'development' : 'production';
         const themeConfig: ThemeLoadConfig = {
-          theme: process.env.NOPRESS_THEME || 'default',
-          themePath: process.env.NOPRESS_THEME_PATH,
+          theme: readEnv('NOPRESS_THEME', mode, projectRoot) || 'default',
+          themePath: readEnv('NOPRESS_THEME_PATH', mode, projectRoot),
         };
 
         // 初始化主题系统
@@ -95,7 +81,7 @@ export function nopressThemeIntegration(): AstroIntegration {
         console.log(`[NoPress Theme] Active theme: ${activeTheme.config.name}`);
 
         // 合并主题选项：声明的默认值 + 宿主覆盖（NOPRESS_THEME_OPTIONS）
-        const rawOptions = readThemeOptionsEnv(projectRoot, command);
+        const rawOptions = readEnv('NOPRESS_THEME_OPTIONS', mode, projectRoot);
         let themeOptions: Record<string, string | number | boolean> = {};
         try {
           themeOptions = mergeThemeOptions(

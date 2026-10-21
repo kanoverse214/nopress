@@ -11,7 +11,7 @@
  * - 评论配置：COMMENTS_GISCUS_* (例如: COMMENTS_GISCUS_REPO)
  */
 
-// 使用 Vite 的 loadEnv 加载环境变量（与 astro.config.mjs 保持一致）
+// 使用 Vite 的 loadEnv 批量加载（站点/评论配置键多，单键读取请用 ./env 的 readEnv）
 import { loadEnv } from 'vite';
 const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
 

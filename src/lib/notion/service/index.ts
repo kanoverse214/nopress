@@ -3,11 +3,10 @@
  * 统一的数据访问入口，包含缓存、业务逻辑和元数据提取
  */
 
+import { readRuntimeEnv } from '../../config/env';
+
 // 配置检查（在模块加载时执行）
-const hasNotionConfig = !!(
-  (import.meta.env?.NOTION_TOKEN || process.env?.NOTION_TOKEN) &&
-  (import.meta.env?.NOTION_DATABASE_ID || process.env?.NOTION_DATABASE_ID)
-);
+const hasNotionConfig = !!(readRuntimeEnv('NOTION_TOKEN') && readRuntimeEnv('NOTION_DATABASE_ID'));
 
 if (!hasNotionConfig) {
   throw new Error(

@@ -6,6 +6,8 @@
  * 只约束「重试后仍失败的站点内容」；第三方装饰（OG/oEmbed 等）始终降级。
  */
 
+import { readRuntimeEnv } from '../config/env';
+
 export interface FailureContext {
   pageId?: string;
   blockId?: string;
@@ -33,8 +35,8 @@ function causeText(cause: unknown): string {
 }
 
 export function isStrictMode(): boolean {
-  const raw = import.meta.env?.NOPRESS_STRICT ?? process.env?.NOPRESS_STRICT;
-  if (raw === undefined || raw === null || raw === '') return true;
+  const raw = readRuntimeEnv('NOPRESS_STRICT');
+  if (raw === undefined) return true;
   return !/^(false|0|no|off)$/i.test(String(raw).trim());
 }
 

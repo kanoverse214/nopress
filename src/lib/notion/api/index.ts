@@ -14,6 +14,7 @@ import {
   notionUnofficialRetryHelper,
 } from '../../utils/api-helpers';
 import { handleContentFailure } from '../../utils/failure';
+import { readRuntimeEnv } from '../../config/env';
 import type { NotionPage, NotionBlock, BlockValue, PageData, DatabaseMeta } from './types';
 
 /**
@@ -1027,8 +1028,15 @@ let apiInstance: NotionAPI | null = null;
  */
 export function getNotionAPI(): NotionAPI {
   if (!apiInstance) {
-    const token = import.meta.env.NOTION_TOKEN || process.env.NOTION_TOKEN;
-    const databaseId = import.meta.env.NOTION_DATABASE_ID || process.env.NOTION_DATABASE_ID;
+    const token = readRuntimeEnv('NOTION_TOKEN');
+    const databaseId = readRuntimeEnv('NOTION_DATABASE_ID');
+    if (!token || !databaseId) {
+      throw new Error(
+        '❌ Notion configuration missing!\n' +
+        '💡 Please set NOTION_TOKEN and NOTION_DATABASE_ID in your .env file.\n' +
+        '📖 See README.md for setup instructions.'
+      );
+    }
     apiInstance = new NotionAPI(token, databaseId);
   }
   return apiInstance;
