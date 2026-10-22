@@ -211,7 +211,7 @@ const result = search.query('全文搜索');     // 索引就绪后同步返回
 | 嵌套块容器 | 段落/引用的子块包在 `div.notion-children` 中；列表项子块直接并入 `<li>`，column 子块直接进 `.notion-column`，不另加包裹 |
 | 富文本颜色 | 行内/块级 Notion 颜色：文字色 `notion-{color}`、背景色 `notion-{color}-background`，色域 `gray/brown/orange/yellow/green/blue/purple/pink/red`，挂在 `<span>` 或 `<p>` 上；主题应提供全部 9 色的双模式映射 |
 | Callout | `.notion-callout`(带 `notion-callout-{color}-background` 变体) > `.notion-callout-icon`(emoji 或 `img.notion-callout-icon-img`) + `.notion-callout-content` |
-| 代码块 | `.notion-code-block` > `.notion-code-header`（`.notion-code-language` + 复制按钮 `.notion-code-copy`）+ `pre.notion-code > code.language-{lang}`，可选 `.notion-code-caption`；Prism token 配色（`.token.*`）由主题 CSS 负责 |
+| 代码块 | `.notion-code-block` > `.notion-code-header`（`.notion-code-language` + 复制按钮 `.notion-code-copy`）+ `pre.notion-code > code.language-{lang}`，可选 `.notion-code-caption`；构建期完成语法高亮，token 为 `<span class="code-{类别}">`，类别：comment/keyword/operator/string/function/number/variable/tag/property/punctuation/builtin，颜色由主题 CSS 按类定义（亮/暗各一套），未定义的类别回退为继承正文颜色 |
 | Mermaid 图表 | 同代码块，`code.language-mermaid`，由脚本替换为 SVG |
 | 行内公式 | `<code class="notion-equation">{latex}</code>`（无 `$` 包裹） |
 | 块级公式 | `.notion-equation-block > .notion-equation`，文本为 `$$latex$$`；脚本用 KaTeX 替换内容并注入 KaTeX 样式，主题可覆盖布局（`.katex-display` 等） |
@@ -253,7 +253,6 @@ import { ClientRouter } from 'astro:transitions';
 
 | 脚本 | 作用 | DOM 依赖 | 样式责任 |
 |------|------|----------|----------|
-| `syntax-highlight` | Prism 按语言按需高亮 | `.notion-code > code[class*="language-"]` | **主题**负责 `.token.*` 配色 |
 | `code-copy` | 代码块复制按钮 | 渲染器自带的 `.notion-code-copy` | 主题负责按钮外观（`.copied` 态） |
 | `math-rendering` | KaTeX 渲染行内/块级公式 | `code.notion-equation`、`.notion-equation-block .notion-equation` | 脚本注入 KaTeX 核心样式；主题可覆盖布局 |
 | `mermaid-rendering` | Mermaid 图表渲染（Pele，按图类型懒加载） | `pre code.language-mermaid` | 主题可设 `.mermaid` 容器尺寸；配色经 `--pele-*` CSS 变量映射（深浅色随主题自动切换，无需重渲染） |

@@ -6,6 +6,7 @@
 import type { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import type { RenderContext, RenderOptions, BlockFormat } from './types';
 import { renderRichText, extractPlainText, escapeHtml, renderPlainText } from './rich-text';
+import { highlightCode } from './highlight';
 import { toProxyUrl, fileObjectUrl, withDisplayParams, buildDisplaySrcSet } from '../file-url';
 import type { FileOwner } from '../file-url';
 import { fetchOpenGraphData } from '../opengraph';
@@ -407,7 +408,7 @@ export class NotionBlockRenderer {
   /**
    * 渲染代码块
    */
-  private renderCode(block: BlockObjectResponse, _context: RenderContext): string {
+  private async renderCode(block: BlockObjectResponse, _context: RenderContext): Promise<string> {
     const code = (block as any).code;
     const text = code.rich_text.map((rt: any) => rt.plain_text).join('');
     const language = code.language || 'plaintext';
@@ -436,7 +437,7 @@ export class NotionBlockRenderer {
 
     return `<div class="notion-code-block">
       ${headerHtml}
-      <pre class="notion-code"><code class="language-${language}">${escapeHtml(text)}</code></pre>
+      <pre class="notion-code"><code class="language-${language}">${await highlightCode(text, language)}</code></pre>
       ${caption}
     </div>`;
   }

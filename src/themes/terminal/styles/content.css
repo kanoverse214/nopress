@@ -194,16 +194,19 @@ figure.notion-image figcaption::before { content: 'fig: '; }
   color: var(--fg-dim);
 }
 
-/* Prism token 配色归主题（契约 §5）：绿色亮度分级 */
-.token.comment, .token.prolog, .token.cdata { color: var(--fg-dim); font-style: italic; }
-.token.keyword, .token.tag, .token.boolean, .token.constant { color: var(--fg-bright); }
-.token.string, .token.char, .token.attr-value { color: var(--fg); }
-.token.function, .token.class-name { color: var(--fg-bright); text-decoration: underline; text-decoration-color: var(--border); }
-.token.number, .token.regex, .token.variable { color: var(--fg-bright); }
-.token.operator, .token.punctuation { color: var(--fg-dim); }
-.token.property, .token.attr-name { color: var(--fg); }
+/* 构建期语法高亮配色（token span class="code-{类别}"，配色归主题）：绿色亮度分级 */
+.code-comment { color: var(--fg-dim); }
+.code-keyword { color: var(--fg-bright); }
+.code-operator { color: var(--fg-dim); }
+.code-string { color: var(--fg); }
+.code-function { color: var(--fg-bright); }
+.code-number { color: var(--fg-bright); }
+.code-variable { color: var(--fg-bright); }
+.code-tag { color: var(--fg-bright); }
+.code-property { color: var(--fg); }
+.code-punctuation { color: var(--fg-dim); }
 
-/* ===== 公式（KaTeX 核心样式由脚本注入，主题覆盖配色） ===== */
+/* ===== 公式（KaTeX 样式由布局全局引入，主题覆盖配色） ===== */
 
 code.notion-equation {
   font-family: inherit;

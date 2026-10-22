@@ -225,7 +225,7 @@ pre {
 pre code {
   padding: 0;
   background-color: transparent;
-  /* 不设置 color，让 Prism token 的语法高亮颜色生效 */
+  /* 不设置 color，让语法高亮 token 类的颜色生效 */
   font-weight: 400;
 }
 

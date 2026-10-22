@@ -47,7 +47,7 @@ src/
 │   ├── notion/
 │   │   ├── service/      # NotionDataService 单例：缓存 + 元数据提取（extractMetadata 在此；import dataService from '@lib/notion/service'）
 │   │   ├── api/          # NotionAPI：官方 SDK 封装（查询/过滤/排序、签名 URL）+ 非官方 API
-│   │   ├── renderer/     # 自研块渲染器：Notion blocks → HTML（30+ 块类型）
+│   │   ├── renderer/     # 自研块渲染器：Notion blocks → HTML（30+ 块类型，代码块构建期 Shiki 高亮）
 │   │   ├── database/     # 嵌入式 child_database 渲染（表格/画廊视图）
 │   │   ├── opengraph.ts  # metascraper 抓取 bookmark 链接的 OG 元数据
 │   │   └── file-url.ts
@@ -60,7 +60,7 @@ src/
 │   └── utils/            # slug / date / format / api-helpers（RateLimiter + RetryHelper）/ failure（失败策略）/ version（构建 commit id）
 ├── config/               # site.ts 默认值 + resolved-site.ts（可回填 Notion Database 元信息）
 ├── core/                 # meta-helpers（<head> 标签生成）
-└── scripts/              # 客户端脚本：TOC、代码高亮、KaTeX、mermaid、图片灯箱、giscus
+└── scripts/              # 客户端脚本：TOC、KaTeX、mermaid、图片灯箱、giscus
 ```
 
 **数据流**：页面/端点 → `dataService`（查缓存）→ `notionAPI`（官方 API 限流 5 并发，非官方 6 并发 + 指数退避重试）→ Notion API → `renderer`（blocks → HTML）→ 结果写入缓存 → 返回 `Post` 对象。详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。

@@ -63,9 +63,10 @@ Notion API 封装，同时使用**官方 SDK 和非官方 API**：
 
 - `block-renderer.ts` — 核心渲染逻辑，按块类型 switch，支持 30+ 块类型（段落、标题、列表、代码、表格、callout、toggle、column、synced_block、embed 等），递归渲染子块
 - `rich-text.ts` — 富文本格式（粗体、斜体、颜色、公式内联）
+- `highlight.ts` — 构建期代码高亮（Shiki）：共享自定义主题把 textmate scope 归类为固定语义类别，token 输出 `<span class="code-{类别}">` 随 `content` 一起进缓存，配色由主题 CSS 按类定义；未支持语言或高亮失败时降级为纯转义文本
 - `index.ts` — 页面级渲染入口，协调 OG 抓取、文件 URL 解析等后处理；`renderPage` 并行拉取页面数据（非官方，格式信息）与页面块（官方），两者互不依赖
 
-代码高亮（Prism.js）和数学公式（KaTeX）在客户端由 `src/scripts/` 渲染。
+数学公式（KaTeX）在客户端由 `src/scripts/` 渲染。
 
 ### 4. Database 渲染（`src/lib/notion/database/`）
 
@@ -209,7 +210,7 @@ src/
 │   └── utils/                    # api-helpers（限流/重试）、failure（失败策略）、slug、date、format、version（构建 commit id）
 ├── config/                       # site.ts 默认值 + resolved-site.ts（回填 Database 元数据）
 ├── core/                         # meta-helpers（<head> 生成）
-└── scripts/                      # 客户端脚本：TOC、代码高亮、KaTeX、mermaid、灯箱、giscus
+└── scripts/                      # 客户端脚本：TOC、KaTeX、mermaid、灯箱、giscus
 ```
 
 ---

@@ -79,9 +79,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       {footerText && <p>{footerText}</p>}
     </footer>
 
-    <!-- 可选脚本按需引入：只引高亮与公式，验证其余标记的降级行为 -->
+    <!-- 可选脚本按需引入：只引公式，验证其余标记的降级行为 -->
     <script>
-      import '@/scripts/syntax-highlight';
       import '@/scripts/math-rendering';
     </script>
   </body>
