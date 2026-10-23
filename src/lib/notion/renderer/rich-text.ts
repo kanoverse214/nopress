@@ -5,6 +5,7 @@
 
 import type { RichTextItemResponse } from '@notionhq/client/build/src/api-endpoints';
 import type { NotionColor } from './types';
+import { renderMath } from './math';
 import { fetchOpenGraphData } from '../opengraph';
 
 /**
@@ -47,10 +48,9 @@ async function renderSingleRichText(richText: RichTextItemResponse): Promise<str
     // 处理 @mention
     text = await renderMention(richText as any);
   } else if (richText.type === 'equation') {
-    // 处理行内公式
-    // 需要 HTML 转义：LaTeX 字面 <、& 会破坏 HTML 结构；
-    // 浏览器 textContent 解码后仍是原始字符，KaTeX 渲染不受影响
-    text = `<code class="notion-equation">${escapeHtml(richText.equation.expression)}</code>`;
+    // 处理行内公式：构建期渲染，原始 TeX 存 data-tex 供 .md 端点与搜索索引使用
+    const expression: string = richText.equation.expression;
+    text = `<code class="notion-equation" data-tex="${escapeHtml(expression)}">${renderMath(expression, false)}</code>`;
   }
 
   // 应用注释（annotations）

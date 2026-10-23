@@ -8,6 +8,7 @@ import Footer from '../components/Footer.astro';
 import SearchDialog from '../components/SearchDialog.astro';
 import '../styles/global.css';
 import '../styles/search.css';
+import 'katex/dist/katex.min.css';
 
 interface Props {
   title?: string;
@@ -94,10 +95,9 @@ const ogImage = image || metaTags.ogImage;
     <Footer />
     <SearchDialog />
 
-    <!-- 数学公式、图表渲染和图片预览 -->
+    <!-- 图表渲染和图片预览 -->
     <script>
       import '@/scripts/code-copy';
-      import '@/scripts/math-rendering';
       import '@/scripts/mermaid-rendering';
       import '@/scripts/image-gallery';
       import '../scripts/search';

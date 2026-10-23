@@ -7,6 +7,7 @@ import type { BlockObjectResponse } from '@notionhq/client/build/src/api-endpoin
 import type { RenderContext, RenderOptions, BlockFormat } from './types';
 import { renderRichText, extractPlainText, escapeHtml, renderPlainText } from './rich-text';
 import { highlightCode } from './highlight';
+import { renderMath } from './math';
 import { toProxyUrl, fileObjectUrl, withDisplayParams, buildDisplaySrcSet } from '../file-url';
 import type { FileOwner } from '../file-url';
 import { fetchOpenGraphData } from '../opengraph';
@@ -447,12 +448,10 @@ export class NotionBlockRenderer {
    */
   private renderEquation(block: BlockObjectResponse, _context: RenderContext): string {
     const equation = (block as any).equation;
-    // 公式源码需要 HTML 转义：LaTeX 中的字面 <、& 等会被 HTML 解析器当作标记，
-    // 转义后浏览器 textContent 仍是原始字符，KaTeX（math-rendering.ts）读取不受影响
-    const expression = escapeHtml(equation.expression);
+    const expression: string = equation.expression;
 
-    return `<div class="notion-equation-block">
-      <span class="notion-equation">$$${expression}$$</span>
+    return `<div class="notion-equation-block" data-tex="${escapeHtml(expression)}">
+      <span class="notion-equation">${renderMath(expression, true)}</span>
     </div>`;
   }
 

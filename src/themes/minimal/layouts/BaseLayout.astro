@@ -11,6 +11,7 @@ import dataService from '@lib/notion/service';
 import { themeOptions } from '@lib/theme/options';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
+import 'katex/dist/katex.min.css';
 
 interface Props {
   title?: string;
@@ -78,10 +79,5 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       <p>&copy; {SITE_CONFIG.copyrightYearText} {SITE_CONFIG.title}</p>
       {footerText && <p>{footerText}</p>}
     </footer>
-
-    <!-- 可选脚本按需引入：只引公式，验证其余标记的降级行为 -->
-    <script>
-      import '@/scripts/math-rendering';
-    </script>
   </body>
 </html>

@@ -15,6 +15,7 @@ import dataService from '@lib/notion/service';
 import { themeOptions } from '@lib/theme/options';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
+import 'katex/dist/katex.min.css';
 
 interface Props {
   title?: string;
@@ -84,9 +85,5 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <footer class="term-footer">
       <p>[process exited with code 0] &mdash; &copy; {SITE_CONFIG.copyrightYearText} {SITE_CONFIG.title}</p>
     </footer>
-
-    <script>
-      import '@/scripts/math-rendering';
-    </script>
   </body>
 </html>

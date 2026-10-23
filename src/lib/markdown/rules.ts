@@ -62,18 +62,21 @@ export function applyNotionRules(td: TurndownService): void {
 
   // ===== 剥壳还原（还原为原生 Markdown 语法）=====
 
-  // 块级公式 → $$...$$（span 文本本身已含 $$ 定界符）
+  // 块级公式 → $$...$$（构建期渲染后原始 TeX 在 data-tex 上，未渲染回退读文本）
   add(
     'block-equation',
     tagWithClass('div', 'notion-equation-block'),
-    (_content, node) => `\n\n${(node.textContent || '').trim()}\n\n`
+    (_content, node) => {
+      const tex = node.getAttribute('data-tex') ?? (node.textContent || '');
+      return `\n\n$$${tex.trim()}$$\n\n`;
+    }
   );
 
   // 行内公式 → $...$
   add(
     'inline-equation',
     tagWithClass('code', 'notion-equation'),
-    (content) => `$${content.trim()}$`
+    (content, node) => `$${(node.getAttribute('data-tex') ?? content).trim()}$`
   );
 
   // ===== 语义映射（Markdown 无对应结构的降级表达）=====

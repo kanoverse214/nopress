@@ -29,6 +29,18 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (_, name: string) => named[name] ?? `&${name};`);
 }
 
+/**
+ * 剥离 KaTeX 的隐藏 MathML 块
+ *
+ * KaTeX 输出含视觉树（.katex-html）与隐藏 MathML（.katex-mathml，内含
+ * 原始 TeX 注解）两份内容，全部进索引会让公式文本重复灌入；剥离隐藏块后
+ * 保留与页面可见内容一致的视觉字形文本
+ */
+function stripKatexMathml(content: string): string {
+  // math 内容经 KaTeX 转义，不含 "</math>" 字面量，惰性匹配安全
+  return content.replace(/<span[^>]*katex-mathml[^>]*>[\s\S]*?<\/math><\/span>/g, '');
+}
+
 function toSearchDocument(item: Post, type: 'post' | 'page'): SearchDocument | null {
   // 与路由生成同口径：无效 slug 的条目不产生页面，也不应被搜到
   if (!isValidSlug(item.slug)) {
@@ -45,7 +57,7 @@ function toSearchDocument(item: Post, type: 'post' | 'page'): SearchDocument | n
     title: item.title,
     tags: item.tags ?? [],
     excerpt: decodeHtmlEntities(excerpt),
-    body: decodeHtmlEntities(extractPlainText(item.content)),
+    body: decodeHtmlEntities(extractPlainText(stripKatexMathml(item.content))),
     date: item.publishedAt,
   };
 }

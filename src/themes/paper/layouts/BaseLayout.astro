@@ -15,6 +15,7 @@ import { ClientRouter } from 'astro:transitions';
 import ThemeToggle from '../components/ThemeToggle.astro';
 import { isCurrentPath, normalizePath, safeColor } from '../lib/site';
 import '../styles/global.css';
+import 'katex/dist/katex.min.css';
 
 interface Props {
   title?: string;
@@ -129,7 +130,6 @@ const SOCIAL_LABELS: Record<string, string> = {
 
     <script>
       import '@/scripts/code-copy';
-      import '@/scripts/math-rendering';
       import '@/scripts/mermaid-rendering';
       import '@/scripts/image-gallery';
     </script>

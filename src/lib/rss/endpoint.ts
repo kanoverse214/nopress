@@ -8,6 +8,7 @@ import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
 import { getResolvedSiteConfig } from '@config/resolved-site';
 import dataService from '@lib/notion/service';
+import { replaceKatexWithTex } from './latex';
 
 export async function GET(context: APIContext) {
   // 获取解析后的站点配置
@@ -32,7 +33,7 @@ export async function GET(context: APIContext) {
       link: `/post/${post.slug}`,
       pubDate: new Date(post.publishedAt),
       description: post.description,
-      content: post.content, // 完整 HTML 内容
+      content: replaceKatexWithTex(post.content), // 完整 HTML 内容，公式降级为 TeX 文本
       categories: post.tags,
     })),
 

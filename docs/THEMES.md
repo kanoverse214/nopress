@@ -213,8 +213,8 @@ const result = search.query('全文搜索');     // 索引就绪后同步返回
 | Callout | `.notion-callout`(带 `notion-callout-{color}-background` 变体) > `.notion-callout-icon`(emoji 或 `img.notion-callout-icon-img`) + `.notion-callout-content` |
 | 代码块 | `.notion-code-block` > `.notion-code-header`（`.notion-code-language` + 复制按钮 `.notion-code-copy`）+ `pre.notion-code > code.language-{lang}`，可选 `.notion-code-caption`；构建期完成语法高亮，token 为 `<span class="code-{类别}">`，类别：comment/keyword/operator/string/function/number/variable/tag/property/punctuation/builtin，颜色由主题 CSS 按类定义（亮/暗各一套），未定义的类别回退为继承正文颜色 |
 | Mermaid 图表 | 同代码块，`code.language-mermaid`，由脚本替换为 SVG |
-| 行内公式 | `<code class="notion-equation">{latex}</code>`（无 `$` 包裹） |
-| 块级公式 | `.notion-equation-block > .notion-equation`，文本为 `$$latex$$`；脚本用 KaTeX 替换内容并注入 KaTeX 样式，主题可覆盖布局（`.katex-display` 等） |
+| 行内公式 | `<code class="notion-equation" data-tex="{latex}">`，构建期以 KaTeX 内联渲染（原始 TeX 存 `data-tex`，渲染失败回退为转义 `$latex$` 文本） |
+| 块级公式 | `.notion-equation-block`（`data-tex` 存原始 TeX）> `.notion-equation`（KaTeX display 模式渲染结果），主题可覆盖布局（`.katex-display` 等）；KaTeX 样式由主题布局全局引入 |
 | 表格 | `.notion-table-wrapper > table.notion-table` |
 | 图片 | `figure.notion-image.notion-image-{center\|left\|right}`（可选加 `notion-image-page-width` / `notion-image-full-width`）> `<a class="glightbox" data-gallery="article-images" data-title data-description><img …></a>`；`<img>` 带 `srcset`/`sizes`（按视口与 DPR 请求更小的候选，插槽估算基于默认主题的 900px 正文容器），无内联脚本——`a` 元素的 `data-aspect-ratio` / `.loaded` 由 `image-gallery` 脚本在图片加载后补设；多图排布用 `.notion-column-list > .notion-column` |
 | 书签卡片 | `.notion-bookmark` > `.notion-bookmark-info`（title/description/url）+ `.notion-bookmark-cover` |
@@ -254,7 +254,6 @@ import { ClientRouter } from 'astro:transitions';
 | 脚本 | 作用 | DOM 依赖 | 样式责任 |
 |------|------|----------|----------|
 | `code-copy` | 代码块复制按钮 | 渲染器自带的 `.notion-code-copy` | 主题负责按钮外观（`.copied` 态） |
-| `math-rendering` | KaTeX 渲染行内/块级公式 | `code.notion-equation`、`.notion-equation-block .notion-equation` | 脚本注入 KaTeX 核心样式；主题可覆盖布局 |
 | `mermaid-rendering` | Mermaid 图表渲染（Pele，按图类型懒加载） | `pre code.language-mermaid` | 主题可设 `.mermaid` 容器尺寸；配色经 `--pele-*` CSS 变量映射（深浅色随主题自动切换，无需重渲染） |
 | `image-gallery` | PhotoSwipe 灯箱 | 渲染器自带的 `.glightbox[data-gallery="article-images"]` | 脚本注入 PhotoSwipe CSS |
 | `table-of-contents` | 自动目录 + 滚动高亮 | **主题提供** `.toc-container` 容器 + 内容容器 `.notion-content`（h1-h3） | 主题负责目录样式（`.toc-item` / `.toc-active` 等） |
@@ -264,8 +263,8 @@ import { ClientRouter } from 'astro:transitions';
 
 ```astro
 <script>
-  import '@/scripts/syntax-highlight';
-  import '@/scripts/math-rendering';
+  import '@/scripts/code-copy';
+  import '@/scripts/mermaid-rendering';
 </script>
 ```
 
